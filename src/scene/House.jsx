@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { useClickable } from './useClickable'
 
 /**
  * Placeholder cartoon house from primitives so the loop works day one.
@@ -74,6 +76,7 @@ function Wall({ id, normal, position, size, color }) {
 }
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
+const NOOP_RAYCAST = () => {}
 
 /**
  * Roof (with its chimney) reveals the interior on either trigger — tilting the
@@ -88,6 +91,10 @@ function Roof({ color }) {
   const roofMatRef = useRef()
   const chimneyRef = useRef()
   const chimneyMatRef = useRef()
+
+  const triggered = useGameStore((s) => !!s.triggered.hail)
+  const trigger = useGameStore((s) => s.triggerDisaster)
+  const { hovered, bind } = useClickable(() => trigger('hail'), triggered)
 
   useFrame(({ camera }) => {
     const roofMat = roofMatRef.current
@@ -114,16 +121,34 @@ function Roof({ color }) {
     chimneyMat.opacity = roofMat.opacity // chimney tracks the roof exactly
     // Shadows ignore material opacity, so kill the cast shadow once faded or the
     // interior stays darkened by a phantom roof.
-    const cast = roofMat.opacity > 0.5
-    if (roofRef.current) roofRef.current.castShadow = cast
-    if (chimneyRef.current) chimneyRef.current.castShadow = cast
+    const solid = roofMat.opacity > 0.5
+    if (roofRef.current) {
+      roofRef.current.castShadow = solid
+      // While faded (interior revealed) the roof must NOT eat clicks meant for
+      // the stove/furniture underneath — drop it out of raycasting. While solid
+      // it's the hail trigger.
+      roofRef.current.raycast = solid ? THREE.Mesh.prototype.raycast : NOOP_RAYCAST
+    }
+    if (chimneyRef.current) chimneyRef.current.castShadow = solid
+
+    // Warm hover glow so the roof reads as the hail trigger.
+    const glow = hovered ? 0.5 : 0
+    roofMat.emissiveIntensity = THREE.MathUtils.lerp(roofMat.emissiveIntensity, glow, 0.2)
   })
 
   return (
     <group>
-      <mesh ref={roofRef} position={[0, 3.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+      <mesh ref={roofRef} position={[0, 3.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow {...bind}>
         <coneGeometry args={[2.9, 1.7, 4]} />
-        <meshStandardMaterial ref={roofMatRef} color={color} flatShading transparent opacity={1} />
+        <meshStandardMaterial
+          ref={roofMatRef}
+          color={color}
+          emissive="#ffcaa0"
+          emissiveIntensity={0}
+          flatShading
+          transparent
+          opacity={1}
+        />
       </mesh>
       <mesh ref={chimneyRef} position={[1.2, 3.4, -0.6]} castShadow>
         <boxGeometry args={[0.5, 1.2, 0.5]} />
@@ -223,30 +248,67 @@ export default function House() {
 }
 
 /**
+ * Kitchen stove — the click target for the fire disaster. Burners glow softly
+ * to advertise interactivity, brighten on hover, and go red-hot once the fire
+ * is triggered. Clicking anywhere on the counter/stove starts the fire.
+ */
+function Stove() {
+  const triggered = useGameStore((s) => !!s.triggered.fire)
+  const trigger = useGameStore((s) => s.triggerDisaster)
+  const { hovered, bind } = useClickable(() => trigger('fire'), triggered)
+
+  const burnerMats = useRef([])
+  const burners = []
+  for (const dx of [-0.15, 0.15]) for (const dz of [-0.13, 0.13]) burners.push([dx, dz])
+
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime
+    const target = triggered
+      ? 1.4 + Math.sin(t * 12) * 0.4 // red-hot flicker
+      : hovered
+        ? 0.9
+        : 0.15 + Math.sin(t * 2.5) * 0.08 // subtle idle "I'm interactive" glow
+    burnerMats.current.forEach((m) => {
+      if (m) m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, target, delta * 8)
+    })
+  })
+
+  return (
+    <group position={[-1.4, 0, -1.0]} {...bind}>
+      {/* Counter body */}
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <boxGeometry args={[1.0, 0.9, 0.7]} />
+        <meshStandardMaterial color="#e8e2d5" flatShading />
+      </mesh>
+      {/* Stove top */}
+      <mesh position={[0, 1.02, 0]} castShadow>
+        <boxGeometry args={[0.7, 0.06, 0.6]} />
+        <meshStandardMaterial color="#2f2f33" flatShading />
+      </mesh>
+      {/* Burners */}
+      {burners.map(([dx, dz], i) => (
+        <mesh key={i} position={[dx, 1.06, dz]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.02, 16]} />
+          <meshStandardMaterial
+            ref={(el) => (burnerMats.current[i] = el)}
+            color="#1c1c1f"
+            emissive="#ff5a1a"
+            emissiveIntensity={0.15}
+          />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+/**
  * Interior props so the cutaway reveals a real home. Kept as simple primitives.
  * The stove (kitchen corner, back-left) is where the fire disaster reads from.
  */
 function Furniture() {
   return (
     <group>
-      {/* Kitchen counter — back-left corner */}
-      <mesh position={[-1.4, 0.55, -1.0]} castShadow>
-        <boxGeometry args={[1.0, 0.9, 0.7]} />
-        <meshStandardMaterial color="#e8e2d5" flatShading />
-      </mesh>
-      {/* Stove top on the counter */}
-      <mesh position={[-1.4, 1.02, -1.0]} castShadow>
-        <boxGeometry args={[0.7, 0.06, 0.6]} />
-        <meshStandardMaterial color="#2f2f33" flatShading />
-      </mesh>
-      {[-0.15, 0.15].map((dx) =>
-        [-0.13, 0.13].map((dz) => (
-          <mesh key={`${dx}:${dz}`} position={[-1.4 + dx, 1.06, -1.0 + dz]}>
-            <cylinderGeometry args={[0.09, 0.09, 0.02, 16]} />
-            <meshStandardMaterial color="#1c1c1f" />
-          </mesh>
-        ))
-      )}
+      <Stove />
 
       {/* Fridge — back-right corner */}
       <mesh position={[1.4, 0.75, -1.05]} castShadow>

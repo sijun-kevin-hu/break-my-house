@@ -1,7 +1,20 @@
 import { OrbitControls, Sky } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
 import House from './House'
 import Ground from './Ground'
+import BackyardTree from './BackyardTree'
 import DisasterEffects from '../disasters/DisasterEffects'
+
+function CameraProbe() {
+  useFrame((state) => {
+    if (typeof window !== 'undefined') {
+      window.__cam = state.camera
+      window.__glDom = state.gl.domElement
+      window.__scene = state.scene
+    }
+  })
+  return null
+}
 
 /**
  * Scene composition only — no game logic here.
@@ -41,8 +54,10 @@ export default function Scene() {
       {/* Cool fill from the opposite side lifts the shadow side out of black */}
       <directionalLight position={[-8, 6, -6]} intensity={0.4} color="#bcd4ff" />
 
+      <CameraProbe />
       <Ground />
       <House />
+      <BackyardTree />
       <DisasterEffects />
 
       <OrbitControls

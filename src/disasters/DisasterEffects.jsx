@@ -2,30 +2,33 @@ import { CameraShake } from '@react-three/drei'
 import { useGameStore } from '../store/useGameStore'
 import Hail from './Hail'
 import Fire from './Fire'
-import FallenTree from './FallenTree'
 
 /**
- * Mounts the visual effect for the active disaster.
+ * Mounts a visual effect for every triggered disaster. Effects stay mounted —
+ * and keep animating — until the player resets the house, so damage lingers on
+ * screen. The camera shakes only while a fresh disaster is still impacting.
+ *
+ * The fallen tree is a scene object (BackyardTree) rather than an effect here,
+ * because it needs to exist standing (and be clickable) before it's triggered.
+ *
  * Adding a disaster: add its component here + content in src/data/disasters.js.
- * Effects unmount automatically when the store flips back to aftermath.
  */
 const EFFECTS = {
   hail: Hail,
   fire: Fire,
-  tree: FallenTree,
 }
 
 export default function DisasterEffects() {
-  const activeDisaster = useGameStore((s) => s.activeDisaster)
-  const damage = useGameStore((s) => s.damage)
-  const Effect = activeDisaster ? EFFECTS[activeDisaster] : null
+  const triggered = useGameStore((s) => s.triggered)
+  const impacts = useGameStore((s) => s.impacts)
 
   return (
     <>
-      {Effect && <Effect />}
-      {activeDisaster && <CameraShake intensity={0.4} />}
-      {/* Fallen tree stays down after the tree disaster resolves */}
-      {damage.tree && !activeDisaster && <FallenTree settled />}
+      {Object.keys(triggered).map((id) => {
+        const Effect = EFFECTS[id]
+        return Effect ? <Effect key={id} /> : null
+      })}
+      {impacts > 0 && <CameraShake intensity={0.4} />}
     </>
   )
 }

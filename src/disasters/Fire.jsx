@@ -1,10 +1,13 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 
+// Anchored at the kitchen stove (back-left corner) so the fire reads as coming
+// straight off the burners the player clicked.
+const STOVE = [-1.4, -1.0] // [x, z]
 const FLAME_POS = [
-  [1.4, 2.6, 0.8],
-  [1.0, 2.7, 1.0],
-  [1.6, 2.5, 1.2],
+  [STOVE[0], 1.35, STOVE[1]],
+  [STOVE[0] - 0.18, 1.45, STOVE[1] + 0.12],
+  [STOVE[0] + 0.18, 1.3, STOVE[1] - 0.1],
 ]
 
 /**
@@ -18,8 +21,8 @@ export default function Fire() {
     () =>
       Array.from({ length: 8 }, (_, i) => ({
         offset: i * 0.5,
-        x: 1.3 + (Math.random() - 0.5) * 0.6,
-        z: 1.0 + (Math.random() - 0.5) * 0.6,
+        x: STOVE[0] + (Math.random() - 0.5) * 0.6,
+        z: STOVE[1] + (Math.random() - 0.5) * 0.6,
       })),
     []
   )
@@ -38,7 +41,7 @@ export default function Fire() {
     smokeRefs.current.forEach((m, i) => {
       if (!m) return
       const cycle = ((t + smoke[i].offset) % 2.5) / 2.5
-      m.position.y = 2.9 + cycle * 2.5
+      m.position.y = 1.5 + cycle * 2.4
       m.material.opacity = 0.5 * (1 - cycle)
       m.scale.setScalar(0.2 + cycle * 0.5)
     })
@@ -56,9 +59,9 @@ export default function Fire() {
           />
         </mesh>
       ))}
-      <pointLight ref={lightRef} position={[1.3, 3, 1]} color="#ff6a00" distance={8} />
+      <pointLight ref={lightRef} position={[STOVE[0], 1.7, STOVE[1]]} color="#ff6a00" distance={8} />
       {smoke.map((s, i) => (
-        <mesh key={i} position={[s.x, 3, s.z]} ref={(el) => (smokeRefs.current[i] = el)}>
+        <mesh key={i} position={[s.x, 1.5, s.z]} ref={(el) => (smokeRefs.current[i] = el)}>
           <sphereGeometry args={[1, 8, 8]} />
           <meshStandardMaterial color="#666" transparent opacity={0.4} />
         </mesh>
