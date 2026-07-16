@@ -1,18 +1,10 @@
 import { useEffect, useRef } from "react";
-import useSound from "../useSound";
+import useSound from "./useSound";
 import { useGameStore } from "../store/useGameStore";
 
 export default function useGameAudio() {
-  const phase = useGameStore((state) => state.phase);
-  const activeDisaster = useGameStore(
-    (state) => state.activeDisaster
-  );
-  const panelDisaster = useGameStore(
-    (state) => state.panelDisaster
-  );
-  const preventions = useGameStore(
-    (state) => state.preventions
-  );
+  const triggered = useGameStore((state) => state.triggered);
+  const preventions = useGameStore((state) => state.preventions);
 
   const hailSound = useSound("/audio/hail.mp3", {
     volume: 0.7,
@@ -30,55 +22,53 @@ export default function useGameAudio() {
     volume: 0.7,
   });
 
-  const previousPhaseRef = useRef(phase);
+  const previousTriggered = useRef({});
+  const previousPreventions = useRef({});
 
   useEffect(() => {
-    if (phase !== "active" || !activeDisaster) {
-      return;
-    }
+    const previous = previousTriggered.current;
 
-    if (activeDisaster === "hail") {
+    if (triggered?.hail && !previous.hail) {
       hailSound.play();
     }
 
-    if (activeDisaster === "fire") {
+    if (triggered?.fire && !previous.fire) {
       fireSound.play();
     }
 
     if (
-      activeDisaster === "tree" ||
-      activeDisaster === "fallenTree" ||
-      activeDisaster === "fallen-tree"
+      (triggered?.tree && !previous.tree) ||
+      (triggered?.fallenTree && !previous.fallenTree) ||
+      (triggered?.["fallen-tree"] && !previous["fallen-tree"])
     ) {
       treeSound.play();
     }
-  }, [phase, activeDisaster]);
+
+    previousTriggered.current = { ...triggered };
+  }, [triggered]);
 
   useEffect(() => {
-    const previousPhase = previousPhaseRef.current;
+    const previous = previousPreventions.current;
 
-    const justEnteredAftermath =
-      previousPhase === "active" &&
-      phase === "aftermath";
+    const preventionWasAdded = Object.keys(preventions || {}).some(
+      (id) => preventions[id] && !previous[id]
+    );
 
-    if (
-      justEnteredAftermath &&
-      panelDisaster &&
-      preventions[panelDisaster]
-    ) {
+    if (preventionWasAdded) {
       successSound.play();
     }
 
-    previousPhaseRef.current = phase;
-  }, [phase, panelDisaster, preventions]);
+    previousPreventions.current = { ...preventions };
+  }, [preventions]);
 
   useEffect(() => {
-    if (phase === "idle") {
+    return () => {
       hailSound.stop();
       fireSound.stop();
       treeSound.stop();
-    }
-  }, [phase]);
+      successSound.stop();
+    };
+  }, []);
 
   return null;
 }
