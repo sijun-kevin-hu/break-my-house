@@ -23,8 +23,8 @@ technical convention or invariant changes.
 |---|---|---|
 | Low-poly 3D house and orbit camera | Done | Mouse orbit and zoom; pan disabled. Keyboard orbit uses WASD/arrow keys and zoom uses Q/E, -/+, or numpad -/+. |
 | Sims-style cutaway | Partial | Exterior walls, interior partitions, and doors use smooth angle/pitch/zoom opacity. Both roof sections use the same pitch/zoom opacity function; the wing roof now spans the full shared-wall run and tucks beneath the original eave, while its materials disable depth writes and omit a thresholded shadow. Production build passes; manual orbit verification remains. |
-| Roomy 3BR/1BA furnished interior | Partial | The wing is now deeper, giving every bedroom more floor area. Beds and wardrobes sit farther from the hall, while shorter inward door swings preserve visible leaves without entering bed footprints. In the original core, the TV now sits on the west wall opposite a rotated sofa, creating a larger living zone with clear separation from the stove. The shared full bathroom remains in the east bay. Production build passes; room scale, furniture clearance, circulation, wall joins, roof alignment, and default framing need manual visual verification. |
-| Hailstorm | Partial | Dense deterministic hail, roof strike flashes/chips, smoothly staggered roof dents/color damage, growing ground accumulation that becomes visible drifts, impact light/shake, and persistent full vs. reduced damage. Production build passes; the expanded animation and pileup still need manual visual verification. |
+| Roomy 3BR/1BA furnished interior | Partial | The wing is now deeper, giving every bedroom more floor area. The primary bed now rests against the bathroom-side wall and faces a dresser plus wall-mounted TV centered together on the opposite wall. In both secondary bedrooms, the beds sit against the north wall and the dressers sit flush to their side walls, aligned beside the beds. The bathroom vanity is placed on the south wall with a compact countertop handle, a rectangular basin, and a small rectangular shutoff tab below it; no pipe or U-shaped control passes through the sink. The room also includes a mirror, storage, towels, bath mat, and hamper, while the bathtub has no exposed fixture. In the original core, the TV now sits on the west wall opposite a rotated sofa, a taller floor lamp and plant add vertical balance, and the sink sits close to the stove. Production build passes; room scale, furniture clearance, circulation, wall joins, roof alignment, and default framing need manual visual verification. |
+| Hailstorm | Partial | Dense deterministic hail now strikes both roof sections, with the wing using the same staged dent, color-damage, prevention, and persistence logic as the core roof. Settled hail and low-poly drifts surround the complete house footprint. Production build passes; the expanded animation and pileup still need manual visual verification. |
 | Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and the east wall; it leaves a dense, staged trail of overlapping floor char. The aftermath now uses shallow raised burn geometry whose lower edge clears both the slab and rug, while prevention keeps the spectacle and damage contained. Production build passes; the expanded char path still needs manual visual verification. |
 | Bathroom water loss | Partial | Clicking the exposed bathroom supply line starts a deterministic spray with a seeded water-burst sound, expanding puddles, and persistent damp-wall aftermath. A visible leak sensor + automatic shutoff sharply limits the spray, sound, and standing water. Production build and store-flow checks pass; the effect needs manual visual/audio verification. |
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
@@ -158,6 +158,16 @@ src/
 - [ ] Click the bathroom supply line, then reset and repeat with leak sensor +
   automatic shutoff; verify spray duration, puddle size, damp-wall aftermath,
   panel cost, and estimated avoided damage all shrink.
+- [ ] Inspect the furnished rooms from the default and overhead angles: verify
+  the bathroom vanity sits against the south wall with clear toilet access, its
+  compact countertop handle, rectangular basin, and rectangular below-sink shutoff
+  read clearly without a pipe intersecting the vanity; verify the added
+  mirror/storage/towels/mat/hamper read clearly, the bathtub is clear of
+  fixtures, each secondary-bedroom bed and dresser
+  sits aligned against its respective wall, the primary bed faces its wall-centered
+  dresser and TV without blocking the door, the sink remains close to the
+  stove, and the taller living-room lamp and plant remain within the room
+  silhouette.
 - [ ] Click tree, repeat after removing the hazardous tree; verify stump,
   “Risk eliminated!”, and $0 cost.
 - [ ] Orbit above and around the house; verify the cutaway keeps all three

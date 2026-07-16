@@ -81,6 +81,22 @@ const HAIL_DENTS = Array.from({ length: 11 }, (_, i) => {
     radius: 0.18 + (i % 4) * 0.035,
   }
 })
+// The attached gable needs its own damage map: its ridge runs east-west while
+// the original roof's ridge runs north-south, so the dent orientation cannot be
+// shared. These positions deliberately span the bedrooms and bathroom wing.
+const wingRoofSurfaceY = (z) =>
+  WING_ROOF_BASE +
+  WING_ROOF_RISE * (1 - Math.min(WING_ROOF_RUN, Math.abs(z)) / WING_ROOF_RUN) +
+  0.13
+const WING_HAIL_DENTS = Array.from({ length: 13 }, (_, i) => {
+  const x = 3.18 + ((i * 41) % 62) * 0.101
+  const z = -3.02 + ((i * 37) % 58) * 0.104
+  return {
+    position: [x, wingRoofSurfaceY(z), z],
+    rotation: [z < 0 ? -WING_ROOF_SLOPE : WING_ROOF_SLOPE, 0, 0],
+    radius: 0.17 + (i % 4) * 0.033,
+  }
+})
 
 // The north-west roof panel is built from five flush pieces. The center piece
 // can be hidden after the tree strike, creating an actual opening without
@@ -270,13 +286,21 @@ const clamp01 = (v) => Math.min(1, Math.max(0, v))
 const NOOP_RAYCAST = () => {}
 
 /** Roof dents land in a staggered sequence instead of popping in with the panel. */
-function HailDamage({ state, active, reduced, opacitySource }) {
+function HailDamage({
+  state,
+  active,
+  reduced,
+  opacitySource,
+  dents = HAIL_DENTS,
+  delayOffset = 0,
+  renderOrder = 0,
+}) {
   const materialRefs = useRef([])
   const groupRefs = useRef([])
   const ageRef = useRef(0)
   const visualState = active ? (reduced ? 'reduced' : 'full') : state
   const full = visualState === 'full'
-  const count = full ? HAIL_DENTS.length : visualState === 'reduced' ? 3 : 0
+  const count = full ? dents.length : visualState === 'reduced' ? 3 : 0
 
   useFrame((_, delta) => {
     ageRef.current = active ? ageRef.current + delta : 0
@@ -284,7 +308,7 @@ function HailDamage({ state, active, reduced, opacitySource }) {
     groupRefs.current.forEach((group, index) => {
       if (!group) return
       const reveal = THREE.MathUtils.smootherstep(
-        Math.max(0, ageRef.current - index * 0.11) / 0.58,
+        Math.max(0, ageRef.current - delayOffset - index * 0.11) / 0.58,
         0,
         1
       )
@@ -295,7 +319,7 @@ function HailDamage({ state, active, reduced, opacitySource }) {
       if (!material) return
       const dentIndex = Math.floor(index / 2)
       const reveal = THREE.MathUtils.smootherstep(
-        Math.max(0, ageRef.current - dentIndex * 0.11) / 0.58,
+        Math.max(0, ageRef.current - delayOffset - dentIndex * 0.11) / 0.58,
         0,
         1
       )
@@ -307,12 +331,13 @@ function HailDamage({ state, active, reduced, opacitySource }) {
 
   return (
     <group>
-      {HAIL_DENTS.slice(0, count).map((dent, index) => (
+      {dents.slice(0, count).map((dent, index) => (
         <group
           key={index}
           ref={(group) => (groupRefs.current[index] = group)}
           position={dent.position}
           rotation={dent.rotation}
+          renderOrder={renderOrder}
         >
           <mesh scale={[dent.radius, full ? 0.075 : 0.035, dent.radius]} raycast={NOOP_RAYCAST}>
             <sphereGeometry args={[1, 12, 7]} />
@@ -906,8 +931,13 @@ function Vanity({ position, rotation = 0 }) {
         <meshStandardMaterial color="#f6f3e9" flatShading />
       </mesh>
       <mesh position={[0, 0.81, 0.02]} castShadow>
-        <cylinderGeometry args={[0.19, 0.19, 0.055, 12]} />
+        <boxGeometry args={[0.38, 0.055, 0.24]} />
         <meshStandardMaterial color="#9fdbe4" flatShading />
+      </mesh>
+      {/* The handle sits directly on the sink top without a tall faucet cylinder. */}
+      <mesh position={[-0.12, 0.93, -0.08]} rotation={[0, 0, -0.36]} castShadow>
+        <boxGeometry args={[0.22, 0.055, 0.06]} />
+        <meshStandardMaterial color="#d4dcdd" metalness={0.45} roughness={0.3} />
       </mesh>
     </group>
   )
@@ -929,9 +959,49 @@ function Bathtub({ position }) {
           roughness={0.3}
         />
       </mesh>
-      <mesh position={[0.38, 0.72, -0.48]} rotation={[0, 0, -0.55]} castShadow>
-        <cylinderGeometry args={[0.035, 0.035, 0.36, 8]} />
-        <meshStandardMaterial color="#aeb8bc" metalness={0.55} roughness={0.35} />
+    </group>
+  )
+}
+
+/** Small fixed details keep the shared bath from reading as an empty utility room. */
+function BathroomDetails() {
+  return (
+    <group>
+      {/* The vanity now sits on the south wall, with a mirror directly above it. */}
+      <mesh position={[8.22, 1.54, -3.31]} castShadow>
+        <boxGeometry args={[0.92, 0.72, 0.06]} />
+        <meshStandardMaterial color="#d9f2f1" metalness={0.25} roughness={0.22} />
+      </mesh>
+      <mesh position={[8.22, 1.54, -3.345]}>
+        <boxGeometry args={[0.74, 0.54, 0.018]} />
+        <meshStandardMaterial
+          color="#9ed9e3"
+          emissive="#4d91a1"
+          emissiveIntensity={0.08}
+          roughness={0.18}
+        />
+      </mesh>
+
+      {/* Storage, a towel bar, and a bath mat give the long room useful rhythm. */}
+      <mesh position={[9.47, 1.25, 0.1]} castShadow>
+        <boxGeometry args={[0.12, 1.3, 0.72]} />
+        <meshStandardMaterial color="#63928c" flatShading />
+      </mesh>
+      <mesh position={[9.39, 1.55, 1.1]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.035, 0.035, 0.54, 8]} />
+        <meshStandardMaterial color="#bcc8c7" metalness={0.5} roughness={0.35} />
+      </mesh>
+      <mesh position={[9.32, 1.36, 1.1]} castShadow>
+        <boxGeometry args={[0.07, 0.35, 0.46]} />
+        <meshStandardMaterial color="#e8b98d" flatShading />
+      </mesh>
+      <mesh position={[8.62, 0.145, 0.7]} receiveShadow>
+        <boxGeometry args={[0.72, 0.025, 0.95]} />
+        <meshStandardMaterial color="#f1e6c8" flatShading roughness={0.95} />
+      </mesh>
+      <mesh position={[7.98, 0.34, 1.03]} castShadow>
+        <cylinderGeometry args={[0.22, 0.18, 0.42, 9]} />
+        <meshStandardMaterial color="#c99162" flatShading />
       </mesh>
     </group>
   )
@@ -968,15 +1038,11 @@ function WaterSupplyTarget() {
   })
 
   return (
-    <group position={[8.68, 0, -1.55]} {...bind}>
-      <Vanity position={[0, 0, 0]} rotation={Math.PI / 2} />
-      {/* Exposed braided line and valve make the risk object recognizable. */}
-      <mesh position={[0, 0.48, 0.22]} rotation={[0, 0, -0.18]} castShadow>
-        <cylinderGeometry args={[0.035, 0.035, 0.58, 8]} />
-        <meshStandardMaterial color="#aeb8bc" metalness={0.55} roughness={0.42} />
-      </mesh>
-      <mesh position={[0.05, 0.27, 0.24]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <torusGeometry args={[0.11, 0.035, 6, 12]} />
+    <group position={[8.22, 0, -2.72]} {...bind}>
+      <Vanity position={[0, 0, 0]} />
+      {/* A compact shutoff tab owns the risk interaction without a U-shaped handle. */}
+      <mesh position={[0.05, 0.27, 0.24]} castShadow>
+        <boxGeometry args={[0.22, 0.08, 0.08]} />
         <meshStandardMaterial
           ref={valveMatRef}
           color={triggered ? '#248fbc' : '#da5a46'}
@@ -985,7 +1051,7 @@ function WaterSupplyTarget() {
           flatShading
         />
       </mesh>
-      {/* Prevention becomes a visible green puck beside the line. */}
+      {/* Prevention becomes a visible green puck beside the shutoff tab. */}
       {protectedByPrevention && (
         <mesh position={[-0.25, 0.17, 0.28]} castShadow>
           <cylinderGeometry args={[0.14, 0.16, 0.09, 10]} />
@@ -1012,6 +1078,7 @@ function WingRoof() {
   const gableRefs = useRef([])
   const gableMatRefs = useRef([])
   const triggered = useGameStore((s) => !!s.triggered.hail)
+  const hailDamage = useGameStore((s) => s.damage.hail)
   const protectedByRoof = useGameStore((s) => !!s.preventions.hail)
   const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
   const trigger = useGameStore((s) => s.triggerDisaster)
@@ -1114,6 +1181,18 @@ function WingRoof() {
         </mesh>
       ))}
 
+      <HailDamage
+        state={hailDamage}
+        active={triggered}
+        reduced={protectedByRoof}
+        opacitySource={roofMatRefs}
+        dents={WING_HAIL_DENTS}
+        // The wing roof uses the exact same staged timing as the main roof.
+        // It must render after the wing panels, whose transparent material has
+        // an explicit order for cutaway stability.
+        renderOrder={11}
+      />
+
       {hovered && (
         <DisasterTargetCue
           position={[WING_ROOF_CENTER_X, WING_ROOF_BASE + WING_ROOF_RISE + 0.42, 0]}
@@ -1200,25 +1279,51 @@ function BedroomWing() {
         </mesh>
       </group>
 
-      <Bed position={[4.02, 0.12, -2.15]} color="#cf765e" size={[1.4, 1.85]} />
-      <Bed position={[6.47, 0.12, -2.15]} color="#8873ac" size={[1.4, 1.85]} />
-      <Bed position={[5.1, 0.12, 2.1]} rotation={Math.PI / 2} color="#4f8997" size={[1.85, 2.2]} />
+      {/* Secondary beds sit tight to the north wall while preserving door clearance. */}
+      <Bed position={[4.25, 0.12, -2.35]} color="#cf765e" size={[1.4, 1.85]} />
+      <Bed position={[6.78, 0.12, -2.35]} color="#8873ac" size={[1.4, 1.85]} />
+      {/* Primary suite: bed against the bathroom wall faces a dresser-and-TV wall. */}
+      <Bed position={[6.48, 0.12, 2.28]} rotation={-Math.PI / 2} color="#4f8997" size={[1.85, 2.2]} />
 
       <WaterSupplyTarget />
       <Toilet position={[9.15, 0.12, -1.05]} rotation={-Math.PI / 2} />
       <Bathtub position={[8.68, 0.12, 2.2]} />
+      <BathroomDetails />
 
-      {/* Small wardrobes make the sleeping rooms read even when beds are foreshortened. */}
-      {[3.18, 5.63].map((x, index) => (
-        <mesh key={x} position={[x, 0.72, -2.98]} castShadow>
+      {/* Dressers sit flush to the side walls and align with their respective beds. */}
+      {[3.1, 5.59].map((x, index) => (
+        <mesh key={x} position={[x, 0.72, -2.35]} castShadow>
           <boxGeometry args={[0.58, 1.2, 0.34]} />
           <meshStandardMaterial color={index ? '#735e82' : '#8d6045'} flatShading />
         </mesh>
       ))}
-      <mesh position={[3.25, 0.75, 2.92]} castShadow>
-        <boxGeometry args={[0.46, 1.28, 0.9]} />
-        <meshStandardMaterial color="#55727a" flatShading />
-      </mesh>
+      <group position={[0, 0, 2.03]}>
+        {/* Low dresser sits directly in front of the primary bed. */}
+        <mesh position={[3.22, 0.48, 0]} castShadow>
+          <boxGeometry args={[0.42, 0.78, 1.02]} />
+          <meshStandardMaterial color="#55727a" flatShading />
+        </mesh>
+        {[-0.22, 0.22].map((z) => (
+          <mesh key={z} position={[3.44, 0.53, z]} castShadow>
+            <boxGeometry args={[0.028, 0.27, 0.34]} />
+            <meshStandardMaterial color="#759ba1" flatShading />
+          </mesh>
+        ))}
+        {/* Wall-mounted screen above the dresser faces the bed without crowding it. */}
+        <mesh position={[2.88, 1.62, 0]} castShadow>
+          <boxGeometry args={[0.07, 0.78, 1.16]} />
+          <meshStandardMaterial color="#493328" flatShading />
+        </mesh>
+        <mesh position={[2.93, 1.62, 0]}>
+          <boxGeometry args={[0.025, 0.61, 0.96]} />
+          <meshStandardMaterial
+            color="#172a3a"
+            emissive="#22465c"
+            emissiveIntensity={0.22}
+            roughness={0.35}
+          />
+        </mesh>
+      </group>
 
       <WingRoof />
     </group>
@@ -1511,11 +1616,11 @@ function Furniture() {
 
   return (
     <group>
-      {/* Kitchen run: stove, sink, and fridge line the back wall at a shared height. */}
+      {/* A compact kitchen work triangle keeps the sink immediately beside the stove. */}
       <Stove />
       <InteriorModel
         asset="/models/house-interior/Kitchen Sink.glb"
-        position={[-0.45, 0, -1.45]}
+        position={[-0.86, 0, -1.45]}
         scale={0.62}
         burnActive={fireActive}
         burnStrength={fireReduced ? 0.16 : 0.82}
@@ -1551,7 +1656,7 @@ function Furniture() {
       <InteriorModel
         asset="/models/house-interior/Lamp.glb"
         position={[-2.25, 0, 1.55]}
-        scale={1.3}
+        scale={1.75}
         burnActive={fireActive && !fireReduced}
         burnStrength={0.68}
         burnDelay={3.2}
@@ -1600,7 +1705,7 @@ function Furniture() {
       <InteriorModel
         asset="/models/house-interior/Houseplant-VtJh4Irl4w.glb"
         position={[2.1, 0, 1.25]}
-        scale={1.15}
+        scale={1.55}
         burnActive={fireActive && !fireReduced}
         burnStrength={0.74}
         burnDelay={3.65}

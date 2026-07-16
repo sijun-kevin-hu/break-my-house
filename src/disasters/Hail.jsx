@@ -12,13 +12,20 @@ const ROOF_RUN = 3.18
 const ROOF_BASE = 3.13
 const ROOF_RISE = 1.45
 const ROOF_SLOPE = Math.atan(ROOF_RISE / ROOF_RUN)
+const WING_X_MIN = 2.8
+const WING_X_MAX = 9.6
+const WING_DEPTH = 6.8
+const WING_ROOF_BASE = 2.42
+const WING_ROOF_RISE = 1.12
+const WING_ROOF_RUN = WING_DEPTH / 2 + 0.32
+const WING_ROOF_SLOPE = Math.atan(WING_ROOF_RISE / WING_ROOF_RUN)
 const IMPACT_CYCLE = 1.55
 const ACCUMULATION_TIME = 5.6
 
 const roofHeight = (x) =>
   ROOF_BASE + ROOF_RISE * (1 - Math.min(ROOF_RUN, Math.abs(x)) / ROOF_RUN) + 0.16
 
-const IMPACTS = Array.from({ length: 14 }, (_, i) => {
+const CORE_IMPACTS = Array.from({ length: 14 }, (_, i) => {
   const x = -2.55 + ((i * 47) % 50) * 0.102
   const z = -1.82 + ((i * 31) % 35) * 0.105
   return {
@@ -29,10 +36,26 @@ const IMPACTS = Array.from({ length: 14 }, (_, i) => {
   }
 })
 
+const wingRoofHeight = (z) =>
+  WING_ROOF_BASE +
+  WING_ROOF_RISE * (1 - Math.min(WING_ROOF_RUN, Math.abs(z)) / WING_ROOF_RUN) +
+  0.16
+const WING_IMPACTS = Array.from({ length: 12 }, (_, i) => {
+  const x = 3.25 + ((i * 41) % 61) * 0.1
+  const z = -3.05 + ((i * 37) % 57) * 0.105
+  return {
+    position: [x, wingRoofHeight(z), z],
+    rotation: [z < 0 ? -WING_ROOF_SLOPE : WING_ROOF_SLOPE, 0, 0],
+    delay: 0.22 + (i * 0.17) % IMPACT_CYCLE,
+    radius: 0.17 + (i % 4) * 0.032,
+  }
+})
+const IMPACTS = [...CORE_IMPACTS, ...WING_IMPACTS]
+
 // Settled hail sits in the clear bands around the foundation. Keeping it on the
 // flat part of the terrain makes the layer feel attached to the yard instead of
 // floating over the decorative hills farther out.
-const GROUND_HAIL = Array.from({ length: 360 }, (_, i) => {
+const CORE_GROUND_HAIL = Array.from({ length: 360 }, (_, i) => {
   const band = i % 4
   const offset = ((i * 47) % 100) / 100 - 0.5
   const depth = ((i * 29) % 100) / 100
@@ -58,12 +81,45 @@ const GROUND_HAIL = Array.from({ length: 360 }, (_, i) => {
   }
 })
 
+// The addition is much longer and deeper than the original footprint. Give it
+// its own deterministic perimeter field so settled hail visibly surrounds the
+// bedrooms and bathroom rather than stopping at the old exterior wall.
+const WING_GROUND_HAIL = Array.from({ length: 280 }, (_, i) => {
+  const band = i % 3
+  const offset = ((i * 43) % 100) / 100 - 0.5
+  const depth = ((i * 31) % 100) / 100
+  let x
+  let z
+  if (band === 0) {
+    x = WING_X_MIN + 0.35 + depth * (WING_X_MAX - WING_X_MIN + 0.5)
+    z = -3.65 - (i % 4) * 0.17
+  } else if (band === 1) {
+    x = WING_X_MIN + 0.35 + depth * (WING_X_MAX - WING_X_MIN + 0.5)
+    z = 3.65 + (i % 4) * 0.17
+  } else {
+    x = WING_X_MAX + 0.4 + (i % 4) * 0.16
+    z = offset * 7.25
+  }
+  return {
+    x,
+    z,
+    y: 0.09 + (i % 3) * 0.018,
+    scale: 0.07 + (i % 8) * 0.019,
+    rotation: (i * 0.69) % Math.PI,
+    reveal: ((i * 41) % 100) / 100,
+  }
+})
+const GROUND_HAIL = [...CORE_GROUND_HAIL, ...WING_GROUND_HAIL]
+
 // A handful of larger low-poly drifts make the later stage read as actual
 // pileup, rather than merely a carpet of individual stones.
 const HAIL_DRIFTS = [
   { position: [-2.35, 2.62], scale: [0.88, 0.22, 0.5], delay: 0.18 },
+  { position: [5.1, 3.72], scale: [1.18, 0.27, 0.5], delay: 0.26 },
   { position: [-0.72, 2.72], scale: [1.06, 0.26, 0.58], delay: 0.34 },
+  { position: [8.1, -3.72], scale: [1.02, 0.25, 0.52], delay: 0.42 },
   { position: [1.1, 2.62], scale: [0.92, 0.24, 0.52], delay: 0.5 },
+  { position: [9.9, 0.72], scale: [0.56, 0.2, 0.94], delay: 0.58 },
   { position: [2.72, 2.76], scale: [0.68, 0.18, 0.46], delay: 0.66 },
   { position: [-3.18, -1.22], scale: [0.52, 0.19, 0.92], delay: 0.82 },
   { position: [3.2, -0.32], scale: [0.54, 0.2, 1.02], delay: 1.02 },
@@ -74,7 +130,7 @@ const HAIL_DRIFTS = [
 
 function HailDrifts({ reduced, progress }) {
   const refs = useRef([])
-  const count = reduced ? 3 : HAIL_DRIFTS.length
+  const count = reduced ? 5 : HAIL_DRIFTS.length
 
   useFrame(() => {
     refs.current.forEach((drift, index) => {
@@ -121,7 +177,6 @@ function GroundAccumulation({ reduced }) {
   const ageRef = useRef(0)
   const progressRef = useRef(0)
   const dummy = useMemo(() => new THREE.Object3D(), [])
-  const count = reduced ? 84 : GROUND_HAIL.length
 
   useFrame((_, delta) => {
     ageRef.current += delta
@@ -129,7 +184,9 @@ function GroundAccumulation({ reduced }) {
     progressRef.current = progress
     GROUND_HAIL.forEach((hail, index) => {
       const reveal = THREE.MathUtils.clamp((progress - hail.reveal * 0.72) / 0.28, 0, 1)
-      const visible = index < count
+      // Keep a sparse but house-wide trace when impact-resistant roofing is on.
+      // Sampling by index retains accumulation around the wing in that outcome.
+      const visible = !reduced || index % 4 === 0
       const scale = visible ? hail.scale * reveal * (reduced ? 0.82 : 1) : 0.001
       dummy.position.set(hail.x, hail.y, hail.z)
       dummy.rotation.set(0, hail.rotation, index * 0.31)
