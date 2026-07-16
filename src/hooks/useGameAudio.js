@@ -8,6 +8,7 @@ export default function useGameAudio() {
 
   const hailSound = useSound("/audio/hail.mp3", {
     volume: 0.7,
+    loop: true,
   });
 
   const fireSound = useSound("/audio/fire.mp3", {
@@ -35,6 +36,10 @@ export default function useGameAudio() {
 
     if (triggered?.hail && !previous.hail) {
       hailSound.play();
+    }
+
+    if (!triggered?.hail && previous.hail) {
+      hailSound.stop();
     }
 
     if (triggered?.fire && !previous.fire) {
