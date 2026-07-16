@@ -79,6 +79,8 @@ must be present and clickable before the tree disaster is triggered.
 ## Scene and interaction rules
 
 - Keep HTML UI outside the `<Canvas>`; 3D objects live inside it.
+- Result panels must remain viewport-bounded and scroll internally on narrow or
+  short windows; keep their acknowledgement action reachable while scrolling.
 - The Sims cutaway is a rendering concern. Near walls and roof pieces fade or
   hide without preventing an interior target from being clicked.
 - Use `useClickable` for a new scene trigger so hover, pointer cursor, event

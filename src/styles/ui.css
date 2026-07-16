@@ -180,6 +180,11 @@ body,
   border: 3px solid #1e3a2f;
   border-radius: 18px;
   padding: 18px;
+  max-height: calc(100vh - 100px);
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   animation: slide-in 0.3s ease-out;
 }
@@ -282,7 +287,9 @@ body,
 }
 
 .close-btn {
-  position: relative;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   margin-top: 14px;
   width: 100%;
   padding: 12px;
@@ -474,6 +481,35 @@ body,
   .intro-heading h2 { font-size: 1.65rem; }
   .intro-lesson { margin: 14px 0; }
   .intro-start { margin-top: 17px; }
+}
+
+@media (max-width: 580px), (max-height: 700px) {
+  .info-panel {
+    top: 84px;
+    right: 12px;
+    width: min(344px, calc(100vw - 24px));
+    max-height: calc(100vh - 96px);
+    max-height: calc(100dvh - 96px);
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .info-panel h2 { font-size: 1.15rem; margin-bottom: 6px; }
+  .info-panel h3 { margin-top: 10px; }
+  .info-panel p { font-size: 0.85rem; }
+  .cost-comparison { gap: 6px; margin-top: 10px; padding: 9px; }
+  .cost-uninsured { padding-bottom: 6px; }
+  .cost-policyholder-share { padding-top: 6px; }
+  .prevention-savings { margin-top: 10px; padding: 8px 10px; }
+  .close-btn { margin-top: 10px; padding: 10px; font-size: 0.95rem; }
+}
+
+@media (max-width: 580px) {
+  .info-panel {
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

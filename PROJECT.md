@@ -29,7 +29,7 @@ technical convention or invariant changes.
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
 | Object-triggered disasters | Done | Roof → hail, stove → fire, tree/stump → tree risk. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. |
 | Discoverable interactions | Done | Live triggers use hover highlights/idle affordance and a pointer cursor; fired triggers stop reading as interactive. |
-| Insurance information panel | Partial | Appears shortly after the event's key beat; shows a financial snapshot: uninsured out-of-pocket exposure, potential insurer payment, and the $1,000 demo deductible. Reduced and eliminated outcomes also quantify estimated damage avoided against the unprotected baseline. It notes that policy terms, limits, and wind/hail deductibles may differ. Production build passes; the revised comparison layout needs manual visual verification. |
+| Insurance information panel | Partial | Appears shortly after the event's key beat; shows a financial snapshot: uninsured out-of-pocket exposure, potential insurer payment, and the $1,000 demo deductible. Reduced and eliminated outcomes also quantify estimated damage avoided against the unprotected baseline. It notes that policy terms, limits, and wind/hail deductibles may differ. The panel becomes a viewport-bounded scroller with a sticky acknowledgement action on narrow or short windows. Production build passes; the revised comparison layout needs manual visual verification. |
 | Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
 | Reset for repeat demos | Done | Clears triggered disasters and damage while keeping prevention selections for easy comparison. |
 | Sound effects | Partial | Audio hook is connected, but the shipped audio directory currently contains only `fire.mp3` and `tree.mp3`; it still needs `hail.mp3`, `success.mp3`, and a filename match for `tree-crash.mp3`. |
@@ -128,7 +128,9 @@ src/
 - [ ] For each disaster outcome, verify the result panel clearly distinguishes
   uninsured out-of-pocket exposure, potential insurer payment, and the $1,000
   demo deductible; confirm prevention and eliminated-risk variants show the
-  corresponding lower or $0 values and the correct avoided-damage amount.
+  corresponding lower or $0 values and the correct avoided-damage amount. At a
+  narrow or short viewport, confirm the panel scrolls internally and “Got it”
+  remains reachable.
 - [ ] Trigger any disaster and, before pressing “Got it,” verify the other
   disaster objects cannot be selected but mouse and keyboard camera movement still work; then acknowledge the panel and verify another unfired object can trigger.
 - [ ] Click stove, repeat with smoke detectors + extinguisher; verify fire
