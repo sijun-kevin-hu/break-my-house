@@ -32,7 +32,8 @@ technical convention or invariant changes.
 | Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
 | Reset for repeat demos | Done | Clears triggered disasters and damage while keeping prevention selections for easy comparison. |
 | Sound effects | Partial | Audio hook is connected, but the shipped audio directory currently contains only `fire.mp3` and `tree.mp3`; it still needs `hail.mp3`, `success.mp3`, and a filename match for `tree-crash.mp3`. |
-| Title/intro polish | Pending | Current title and instructional overlay work; add final visual polish only if time remains. |
+| First-load introduction | Partial | An opening risk-lab panel explains the learning goal and shows object, camera, zoom, prevention, and reset controls before the player begins. Production build passes; manual visual smoke testing remains. |
+| Title/intro polish | Partial | The first-load experience is now purposeful; a final at-screen-size visual pass remains. |
 
 **Explicitly out of scope:** real-world physics, LLM NPCs, walking character,
 additional disasters, and mobile layout.
@@ -74,8 +75,7 @@ the fact.
 1. Supply and test the missing audio assets. Either rename `public/audio/tree.mp3`
    to `tree-crash.mp3` or change the hook to the actual filename; add hail and
    success files.
-2. Do a final visual pass on the title/intro and UI at the intended demo screen
-   size.
+2. Do a final visual pass on the title and UI at the intended demo screen size.
 3. Run the manual demo flow below on the target browser before presenting.
 
 ## Architecture
@@ -112,6 +112,8 @@ src/
 ## Verification checklist
 
 - [x] `npm run build` passes (last verified against the current working tree).
+- [ ] On a fresh load, review the risk-lab introduction; start it and confirm the
+  roof, stove, tree, camera, prevention, and reset controls match the guidance.
 - [ ] With sound enabled, click roof, stove, and tree and confirm one correct
   sound each; enable a prevention and confirm the success cue. Blocked by the
   missing/mismatched audio files listed above.

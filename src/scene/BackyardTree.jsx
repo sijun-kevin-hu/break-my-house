@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { CameraShake } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { useClickable } from './useClickable'
@@ -108,21 +107,13 @@ export default function BackyardTree() {
   const canopyMats = useRef([])
   const fallTime = useRef(0)
   const [impacted, setImpacted] = useState(false)
-  const [impactShake, setImpactShake] = useState(false)
 
   useEffect(() => {
     if (!triggered) {
       fallTime.current = 0
       setImpacted(false)
-      setImpactShake(false)
     }
   }, [triggered])
-
-  useEffect(() => {
-    if (!impactShake) return undefined
-    const timer = setTimeout(() => setImpactShake(false), 850)
-    return () => clearTimeout(timer)
-  }, [impactShake])
 
   useFrame((state, delta) => {
     const pivot = pivotRef.current
@@ -148,7 +139,6 @@ export default function BackyardTree() {
 
         if (!impacted && pivot.rotation.x >= IMPACT_ANGLE) {
           setImpacted(true)
-          setImpactShake(true)
         }
       } else {
         pivot.rotation.x = THREE.MathUtils.damp(pivot.rotation.x, 0, 5, delta)
@@ -219,19 +209,6 @@ export default function BackyardTree() {
         </group>
       )}
       {!removed && impacted && <ImpactBurst reduced={false} />}
-      {!removed && impactShake && (
-        <CameraShake
-          intensity={1.35}
-          decay
-          decayRate={1.25}
-          maxYaw={0.14}
-          maxPitch={0.11}
-          maxRoll={0.09}
-          yawFrequency={18}
-          pitchFrequency={22}
-          rollFrequency={16}
-        />
-      )}
     </>
   )
 }

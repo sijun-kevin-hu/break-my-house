@@ -23,16 +23,27 @@ export function useClickable(onClick, disabled = false) {
 
   const bind = {
     onPointerOver: (e) => {
+      if (disabled) return
       e.stopPropagation()
       setHovered(true)
     },
     onPointerOut: (e) => {
+      if (disabled) return
       e.stopPropagation()
       setHovered(false)
     },
-    onClick: (e) => {
+    // OrbitControls listens directly on the canvas, before a click is emitted.
+    // Stop the initial press as well as the click so dragging from a live
+    // disaster target cannot start a camera orbit.
+    onPointerDown: (e) => {
+      if (disabled) return
       e.stopPropagation()
-      if (!disabled) onClick()
+      e.nativeEvent.stopImmediatePropagation()
+    },
+    onClick: (e) => {
+      if (disabled) return
+      e.stopPropagation()
+      onClick()
     },
   }
 

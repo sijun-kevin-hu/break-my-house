@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { CameraShake } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
 
@@ -40,13 +39,7 @@ export default function Hail() {
   const impactRefs = useRef([])
   const impactLightRef = useRef()
   const ageRef = useRef(0)
-  const [impacting, setImpacting] = useState(true)
   const dummy = useMemo(() => new THREE.Object3D(), [])
-
-  useEffect(() => {
-    const timer = setTimeout(() => setImpacting(false), 2300)
-    return () => clearTimeout(timer)
-  }, [])
 
   const stones = useMemo(
     () =>
@@ -173,17 +166,6 @@ export default function Hail() {
         intensity={0}
       />
 
-      {impacting && (
-        <CameraShake
-          intensity={protectedByRoof ? 0.12 : 0.32}
-          maxYaw={protectedByRoof ? 0.006 : 0.016}
-          maxPitch={protectedByRoof ? 0.008 : 0.022}
-          maxRoll={protectedByRoof ? 0.004 : 0.012}
-          yawFrequency={14}
-          pitchFrequency={18}
-          rollFrequency={15}
-        />
-      )}
     </group>
   )
 }

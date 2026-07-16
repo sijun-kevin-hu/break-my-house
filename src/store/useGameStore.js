@@ -24,8 +24,10 @@ const getDisasterOutcome = (preventions, disasterId) => {
  *  - impacts:    count of disasters still inside their initial "impact" window,
  *                used only to drive the camera shake (so it settles down)
  *  - panelDisaster: which disaster the InfoPanel currently shows
+ *  - hasStarted:  whether the one-time first-load orientation panel is dismissed
  */
 export const useGameStore = create((set, get) => ({
+  hasStarted: false,
   triggered: {},
   damage: {},
   preventions: {},
@@ -68,6 +70,8 @@ export const useGameStore = create((set, get) => ({
   },
 
   closePanel: () => set({ panelDisaster: null }),
+
+  startExperience: () => set({ hasStarted: true }),
 
   resetHouse: () =>
     set({ triggered: {}, damage: {}, impacts: 0, panelDisaster: null }),

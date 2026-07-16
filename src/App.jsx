@@ -3,6 +3,7 @@ import Scene from './scene/Scene'
 import Toolbar from './ui/Toolbar'
 import InfoPanel from './ui/InfoPanel'
 import RiskScore from './ui/RiskScore'
+import IntroPanel from './ui/IntroPanel'
 import useGameAudio from './hooks/useGameAudio'
 import './styles/ui.css'
 
@@ -30,6 +31,7 @@ export default function App() {
         <RiskScore />
         <Toolbar />
         <InfoPanel />
+        <IntroPanel />
       </div>
     </div>
   )
