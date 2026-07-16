@@ -1,5 +1,5 @@
 import { useGameStore } from '../store/useGameStore'
-import { DISASTER_LIST } from '../data/disasters'
+import { PREVENTIONS } from '../data/disasters'
 
 /**
  * Bottom toolbar. Disasters are triggered by clicking objects in the scene
@@ -19,15 +19,15 @@ export default function Toolbar() {
       </p>
 
       <div className="prevention-list">
-        {DISASTER_LIST.map((d) => (
-          <label key={d.id} className="prevention-toggle">
+        {PREVENTIONS.map((prevention) => (
+          <label key={prevention.id} className="prevention-toggle">
             <input
               type="checkbox"
-              checked={!!preventions[d.id]}
-              onChange={() => togglePrevention(d.id)}
+              checked={!!preventions[prevention.id]}
+              onChange={() => togglePrevention(prevention.id)}
             />
-            <span className="prevention-emoji">{d.emoji}</span>
-            {d.prevention}
+            <span className="prevention-emoji">{prevention.emoji}</span>
+            {prevention.label}
           </label>
         ))}
       </div>

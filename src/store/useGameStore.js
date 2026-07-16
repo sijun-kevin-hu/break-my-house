@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { DISASTERS } from '../data/disasters'
 
+const isDisasterPrevented = (preventions, disasterId) =>
+  (DISASTERS[disasterId].preventionIds ?? [disasterId]).some((id) => !!preventions[id])
+
 /**
  * Single source of truth for game state.
  *
@@ -10,7 +13,8 @@ import { DISASTERS } from '../data/disasters'
  *
  *  - triggered:  { [id]: true } disasters that have fired and are still going
  *  - damage:     { [id]: 'full' | 'reduced' } damage applied to the house
- *  - preventions:{ [id]: boolean } prevention toggled per disaster
+ *  - preventions:{ [id]: boolean } active prevention controls; a control can
+ *                mitigate more than one damage path when explicitly mapped
  *  - impacts:    count of disasters still inside their initial "impact" window,
  *                used only to drive the camera shake (so it settles down)
  *  - panelDisaster: which disaster the InfoPanel currently shows
@@ -35,7 +39,7 @@ export const useGameStore = create((set, get) => ({
     const duration = DISASTERS[id].effectDuration
     setTimeout(() => {
       if (!get().triggered[id]) return // reset happened mid-impact
-      const prevented = !!get().preventions[id]
+      const prevented = isDisasterPrevented(get().preventions, id)
       set((s) => ({
         panelDisaster: id,
         damage: { ...s.damage, [id]: prevented ? 'reduced' : 'full' },
@@ -58,7 +62,7 @@ export const useGameStore = create((set, get) => ({
   riskScore: () => {
     const { preventions } = get()
     return Object.values(DISASTERS).reduce(
-      (score, d) => score - (preventions[d.id] ? 0 : d.riskWeight),
+      (score, d) => score - (isDisasterPrevented(preventions, d.id) ? 0 : d.riskWeight),
       100
     )
   },

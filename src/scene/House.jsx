@@ -134,7 +134,9 @@ function Roof({ color, wallColor }) {
 
   const triggered = useGameStore((s) => !!s.triggered.hail)
   const treeTriggered = useGameStore((s) => !!s.triggered.tree)
-  const treePrevented = useGameStore((s) => !!s.preventions.tree)
+  const treePrevented = useGameStore(
+    (s) => !!s.preventions.tree || !!s.preventions.roofStructure
+  )
   const trigger = useGameStore((s) => s.triggerDisaster)
   const { hovered, bind } = useClickable(() => trigger('hail'), triggered)
   const [treeImpactVisible, setTreeImpactVisible] = useState(false)

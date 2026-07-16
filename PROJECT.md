@@ -16,7 +16,7 @@ Interactive 3D cartoon risk-education game/simulation. Summon disasters on a hou
 - [ ] Clickable objects are discoverable — hover highlight / cursor change / subtle idle affordance so the player knows what's interactive
 - [x] Disaster → animation → damage state → info panel loop
 - [x] Info panel: what happened / coverage / typical cost / prevention tip
-- [x] One prevention toggle per disaster (reduces damage + cost shown)
+- [x] Prevention controls visibly reduce the relevant damage + cost shown
 - [x] Home Risk Score (improves as preventions applied)
 - [x] Reset house button (critical for repeat demos)
 - [ ] Sound effects (hail patter, fire crackle, tree crash) — freesound.org
@@ -45,10 +45,27 @@ Interactive 3D cartoon risk-education game/simulation. Summon disasters on a hou
 - **Fire:** flickering flame cones + orange light + rising smoke at kitchen corner; walls char after
 - **Fallen tree:** backyard oak winds up, crashes into the roof, removes a roof section, throws bright shingles/debris, and leaves a ceiling panel dangling inside; stays fallen until reset
 - **Camera shake:** subtle during general disaster activity, strong and contact-timed for major impacts
-- **Prevention toggles** (toolbar): if toggled *before* triggering, damage is visually reduced and the panel shows the reduced cost + "Prevention paid off!" badge
+- **Prevention toggles** (toolbar): the selected prevention reduces the relevant damage, and the panel shows the reduced cost + "Prevention paid off!" badge
 - **Risk score** (top right): 100 minus per-disaster weight for each un-prevented risk; color-coded green/amber/red
 - **Info panel** (right side): slides in after each disaster with education content
 - **Reset house:** clears all damage, keeps prevention toggles
+
+## Preventive logic
+
+This is an educational game/simulation, not just a destruction sandbox: each
+control teaches a specific mitigation and visibly changes the outcome.
+
+| Prevention control | Mitigates | Result |
+|---|---|---|
+| Impact-resistant roofing | Hailstorm | Reduced roof dents/scuffs and lower hail claim cost. |
+| Smoke detectors + extinguisher | Kitchen fire | Reduced fire damage and lower fire claim cost. |
+| Trim overhanging branches | Fallen tree | Reduced tree-impact damage and lower tree claim cost. |
+| Reinforced roof framing | Fallen tree | Reduced tree-impact damage and lower tree claim cost. |
+
+For a fallen tree, either trimming or reinforced roof framing produces the
+reduced outcome; they do not stack yet. Impact-resistant shingles are
+intentionally hail-only — they do not stop a heavy falling tree. Preventive
+state is retained when the house is reset so players can compare outcomes.
 
 ## Visual direction
 
@@ -111,7 +128,8 @@ Node 18+. Stack: Vite, React 18, @react-three/fiber, @react-three/drei, Zustand.
 
 1. Open on idle house — orbit once so the cutaway reveals the furnished interior; let the charm land
 2. "Let's see what a bad day looks like" → **click the roof** → hail → panel appears → walk through coverage/cost
-3. Toggle **impact-resistant roof** → reset → click the roof again → reduced cost + badge → "prevention is the story"
-4. Rapid-fire: **click the stove** (fire) and **click the tree** (fall) for spectacle
-5. Point at risk score → close on audiences: customers, new agents, community events
-6. Always end on **Reset house** so it's ready for judge walk-ups
+3. Toggle **impact-resistant roofing** → reset → click the roof again → reduced cost + badge → "prevention is the story"
+4. Toggle **reinforced roof framing** or **trim overhanging branches** → reset → click the tree → compare the smaller aftermath
+5. Rapid-fire: **click the stove** (fire) and **click the tree** (fall) for spectacle
+6. Point at risk score → close on audiences: customers, new agents, community events
+7. Always end on **Reset house** so it's ready for judge walk-ups

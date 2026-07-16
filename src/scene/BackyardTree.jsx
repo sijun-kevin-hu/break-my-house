@@ -100,7 +100,9 @@ function ImpactBurst({ reduced }) {
  */
 export default function BackyardTree() {
   const triggered = useGameStore((s) => !!s.triggered.tree)
-  const prevented = useGameStore((s) => !!s.preventions.tree)
+  const prevented = useGameStore(
+    (s) => !!s.preventions.tree || !!s.preventions.roofStructure
+  )
   const trigger = useGameStore((s) => s.triggerDisaster)
   const { hovered, bind } = useClickable(() => trigger('tree'), triggered)
 
