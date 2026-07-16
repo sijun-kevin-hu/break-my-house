@@ -25,12 +25,12 @@ export default function useSound(
     };
   }, [src, volume, loop, preload]);
 
-  const play = useCallback(() => {
+  const play = useCallback((startAt = 0) => {
     const audio = audioRef.current;
 
     if (!audio) return;
 
-    audio.currentTime = 0;
+    audio.currentTime = startAt;
 
     audio.play().catch((err) => {
       console.warn("Unable to play sound:", err);

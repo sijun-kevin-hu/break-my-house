@@ -16,14 +16,14 @@ const ARC_PATHS = [
   { delay: 1.16, duration: 0.74, fullOnly: true, points: [[3.77, 0.4, 2.68], [4.16, 0.34, 2.92], [4.68, 0.48, 3.02]] },
   { delay: 1.42, duration: 0.72, fullOnly: true, points: [[3.75, 0.4, 2.62], [3.4, 0.72, 2.46], [2.97, 1.05, 2.33]] },
   { delay: 1.04, duration: 0.82, fullOnly: true, points: [[3.84, 0.4, 2.84], [4.18, 0.94, 2.98], [4.18, 1.5, 3.02]] },
-  { delay: 1.26, duration: 0.78, fullOnly: true, points: [[3.84, 0.4, 2.9], [4.46, 0.52, 3.12], [5.18, 0.62, 3.02]] },
+  { delay: 1.26, duration: 0.78, fullOnly: true, points: [[3.84, 0.4, 2.9], [4.36, 0.52, 3.12], [4.85, 0.62, 3.02]] },
   { delay: 1.5, duration: 0.68, fullOnly: true, points: [[3.76, 0.4, 2.54], [3.42, 0.65, 2.06], [3.2, 0.94, 1.78]] },
 ]
 
 const SPREAD_BURSTS = [
   { position: [2.98, 1.54, 2.24], delay: 0.84, size: 0.58 },
   { position: [4.18, 1.52, 3.02], delay: 1.05, size: 0.52 },
-  { position: [5.18, 0.62, 3.02], delay: 1.26, size: 0.62 },
+  { position: [4.85, 0.62, 3.02], delay: 1.26, size: 0.62 },
   { position: [3.2, 0.96, 1.78], delay: 1.5, size: 0.48 },
   { position: [2.96, 1.96, 1.98], delay: 1.72, size: 0.72 },
 ]
@@ -32,7 +32,7 @@ const ELECTRICAL_FLAMES = [
   { position: [3.8, 0.42, 2.7], delay: 0.72, size: 0.48 },
   { position: [4.1, 0.38, 2.88], delay: 1.05, size: 0.38 },
   { position: [4.48, 0.39, 3.02], delay: 1.26, size: 0.42 },
-  { position: [5.02, 0.48, 3.02], delay: 1.48, size: 0.52 },
+  { position: [4.72, 0.48, 3.02], delay: 1.48, size: 0.52 },
   { position: [3.25, 0.58, 2.25], delay: 1.32, size: 0.36 },
   { position: [3.02, 1.12, 2.38], delay: 1.58, size: 0.46 },
   { position: [2.98, 1.62, 2.12], delay: 1.82, size: 0.54 },
@@ -109,7 +109,7 @@ export default function ElectricalFault() {
           { position: STRIP_ORIGIN, delay: 0.62 },
           { position: new THREE.Vector3(2.98, 1.42, 2.25), delay: 0.9 },
           { position: new THREE.Vector3(4.18, 1.42, 3.02), delay: 1.12 },
-          { position: new THREE.Vector3(5.18, 0.62, 3.02), delay: 1.34 },
+          { position: new THREE.Vector3(4.85, 0.62, 3.02), delay: 1.34 },
           { position: new THREE.Vector3(3.2, 0.96, 1.78), delay: 1.58 },
         ]
       const source = sources[(index * 5) % sources.length]

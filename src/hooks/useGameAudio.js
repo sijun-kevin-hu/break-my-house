@@ -142,12 +142,13 @@ export default function useGameAudio() {
   const previousPreventions = useRef({});
   const waterBurst = useRef(null);
   const electricalArc = useRef(null);
+  const fireLoopStarted = useRef(false);
 
   useEffect(() => {
     const previous = previousTriggered.current;
 
     if (triggered?.hail && !previous.hail) {
-      hailSound.play();
+      hailSound.play(10);
     }
 
     if (!triggered?.hail && previous.hail) {
@@ -155,11 +156,13 @@ export default function useGameAudio() {
     }
 
     if (triggered?.fire && !previous.fire) {
+      fireLoopStarted.current = false;
       fireLoopSound.stop();
       fireSound.play();
     }
 
     if (!triggered?.fire && previous.fire) {
+      fireLoopStarted.current = false;
       fireSound.stop();
       fireLoopSound.stop();
     }
@@ -217,15 +220,29 @@ export default function useGameAudio() {
 
   useEffect(() => {
     const fireIntroAudio = fireSound.audio.current;
+    const fireLoopAudio = fireLoopSound.audio.current;
     const continueFireAmbience = () => {
-      if (useGameStore.getState().triggered?.fire) {
+      if (
+        useGameStore.getState().triggered?.fire &&
+        !fireLoopStarted.current
+      ) {
+        fireLoopStarted.current = true;
         fireLoopSound.play();
       }
     };
+    const bridgeFireSounds = () => {
+      const remaining = fireIntroAudio.duration - fireIntroAudio.currentTime;
+      if (Number.isFinite(remaining) && remaining <= 0.3) {
+        continueFireAmbience();
+      }
+    };
 
+    fireLoopAudio?.load();
+    fireIntroAudio?.addEventListener("timeupdate", bridgeFireSounds);
     fireIntroAudio?.addEventListener("ended", continueFireAmbience);
 
     return () => {
+      fireIntroAudio?.removeEventListener("timeupdate", bridgeFireSounds);
       fireIntroAudio?.removeEventListener("ended", continueFireAmbience);
       hailSound.stop();
       fireSound.stop();

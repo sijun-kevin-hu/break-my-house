@@ -1245,7 +1245,8 @@ function PrimaryBedroomElectricalSetup() {
           />
         </mesh>
       </group>
-      <group position={[5.18, 0.16, 3.02]}>
+      {/* Keep the heater in the open bedside strip, clear of the bed silhouette. */}
+      <group position={[4.85, 0.16, 3.02]}>
         <mesh position={[0, 0.42, 0]} castShadow>
           <boxGeometry args={[0.62, 0.82, 0.34]} />
           <meshStandardMaterial color="#dbd7c9" flatShading />
@@ -1326,7 +1327,7 @@ function PrimaryBedroomElectricalSetup() {
       <PowerCord points={[[3.8, 0.33, 2.49], [3.52, 0.28, 2.35], [3.3, 0.82, 1.78]]} />
       <PowerCord points={[[3.8, 0.33, 2.7], [3.55, 0.36, 2.7], [3.29, 0.84, 2.3]]} color="#3f3a43" />
       <PowerCord points={[[3.8, 0.33, 2.91], [4.08, 0.18, 3.18], [4.18, 0.18, 3.02]]} color="#493a32" />
-      <PowerCord points={[[3.8, 0.33, 3.12], [4.38, 0.18, 3.22], [5.18, 0.2, 3.02]]} radius={0.028} />
+      <PowerCord points={[[3.8, 0.33, 3.12], [4.3, 0.18, 3.22], [4.85, 0.2, 3.02]]} radius={0.028} />
     </group>
   )
 }
