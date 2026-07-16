@@ -11,10 +11,11 @@ export default function Scene() {
   return (
     <>
       <Sky sunPosition={[10, 20, 5]} turbidity={2} />
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.85} />
+      <hemisphereLight args={['#ffffff', '#c9d4b8', 0.5]} />
       <directionalLight
         position={[10, 12, 6]}
-        intensity={1.4}
+        intensity={1.3}
         castShadow
         shadow-mapSize={[2048, 2048]}
       />
