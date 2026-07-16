@@ -21,7 +21,6 @@ import InteriorModel from './InteriorModel'
  */
 const COLORS = {
   wall: '#f5e6c8',
-  wallCharred: '#3a2f28',
   roof: '#c94f3d',
   roofDented: '#7a3a30',
   roofScuffed: '#b04a3a',
@@ -30,6 +29,8 @@ const COLORS = {
   floor: '#caa472',
   rug: '#6b8f9c',
 }
+const WALL_BASE_COLOR = new THREE.Color(COLORS.wall)
+const WALL_CHAR_COLOR = new THREE.Color('#171513')
 
 // Generous footprint for a more legible, roomier dollhouse. The roof dimensions
 // below deliberately exceed this footprint, giving every wall a real eave.
@@ -83,11 +84,12 @@ const WALLS = [
   { id: 'west', normal: [-1, 0, 0], position: [-W / 2, H / 2, 0], size: [T, H, D] },
 ]
 
-function Wall({ id, normal, position, size, color }) {
+function Wall({ id, normal, position, size, fireActive, fireReduced }) {
   const meshRef = useRef()
   const matRef = useRef()
+  const burnProgress = useRef(0)
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera }, delta) => {
     const mesh = meshRef.current
     const mat = matRef.current
     if (!mesh || !mat) return
@@ -101,13 +103,69 @@ function Wall({ id, normal, position, size, color }) {
     const target = facing > 0 ? 0 : 1
     mat.opacity += (target - mat.opacity) * 0.15 // smooth fade
     mesh.visible = mat.opacity > 0.04
+
+    // The north and west kitchen walls char most heavily. The remaining walls
+    // pick up only a faint smoke stain so the burn stays localized and legible.
+    const proximity = id === 'north' ? 1 : id === 'west' ? 0.92 : 0.18
+    const severity = fireReduced ? 0.24 : 1
+    const burnTarget = fireActive ? proximity * severity : 0
+    burnProgress.current = THREE.MathUtils.damp(
+      burnProgress.current,
+      burnTarget,
+      fireActive ? 0.82 : 4,
+      delta
+    )
+    mat.color.lerpColors(WALL_BASE_COLOR, WALL_CHAR_COLOR, burnProgress.current)
   })
 
   return (
     <mesh ref={meshRef} position={position} castShadow receiveShadow>
       <boxGeometry args={size} />
-      <meshStandardMaterial ref={matRef} color={color} flatShading transparent opacity={1} />
+      <meshStandardMaterial ref={matRef} color={COLORS.wall} flatShading transparent opacity={1} />
     </mesh>
+  )
+}
+
+/** Layered floor scorch that blooms outward from the stove over several seconds. */
+function FireScorch({ active, reduced }) {
+  const mats = useRef([])
+  const progress = useRef(0)
+
+  useFrame((_, delta) => {
+    const target = active ? (reduced ? 0.26 : 1) : 0
+    progress.current = THREE.MathUtils.damp(progress.current, target, active ? 0.95 : 4, delta)
+    mats.current.forEach((material, index) => {
+      if (!material) return
+      material.opacity = progress.current * (index === 0 ? 0.94 : index === 1 ? 0.76 : 0.64)
+    })
+  })
+
+  return (
+    <group>
+      {[
+        { position: [-1.72, 0.116, -1.42], radius: 0.96, scale: [1.1, 0.78, 1] },
+        { position: [-1.18, 0.117, -1.1], radius: 0.74, scale: [1.25, 0.68, 1] },
+        { position: [-1.15, 0.118, -0.68], radius: 0.62, scale: [1.35, 0.56, 1] },
+      ].map((mark, index) => (
+        <mesh
+          key={index}
+          position={mark.position}
+          rotation={[-Math.PI / 2, 0, index * 0.38]}
+          scale={mark.scale}
+          renderOrder={2}
+        >
+          <circleGeometry args={[mark.radius, 14]} />
+          <meshStandardMaterial
+            ref={(material) => (mats.current[index] = material)}
+            color={index === 0 ? '#0d0b0a' : index === 1 ? '#241512' : '#382018'}
+            transparent
+            opacity={0}
+            depthWrite={false}
+            roughness={1}
+          />
+        </mesh>
+      ))}
+    </group>
   )
 }
 
@@ -450,6 +508,8 @@ function Roof({ color, wallColor }) {
 
 export default function House() {
   const damage = useGameStore((s) => s.damage)
+  const fireActive = useGameStore((s) => !!s.triggered.fire)
+  const fireReduced = useGameStore((s) => !!s.preventions.fire)
 
   const roofColor =
     damage.hail === 'full'
@@ -457,8 +517,6 @@ export default function House() {
       : damage.hail === 'reduced'
         ? COLORS.roofScuffed
         : COLORS.roof
-
-  const wallColor = damage.fire === 'full' ? COLORS.wallCharred : COLORS.wall
 
   return (
     <group position={[0, 0, 0]}>
@@ -482,11 +540,18 @@ export default function House() {
 
       {/* Cutaway walls */}
       {WALLS.map((w) => (
-        <Wall key={w.id} {...w} color={wallColor} />
+        <Wall
+          key={w.id}
+          {...w}
+          fireActive={fireActive}
+          fireReduced={fireReduced}
+        />
       ))}
 
+      <FireScorch active={fireActive} reduced={fireReduced} />
+
       {/* Proper gable roof — fades as camera tilts top-down */}
-      <Roof color={roofColor} wallColor={wallColor} />
+      <Roof color={roofColor} wallColor={COLORS.wall} />
 
       {/* Door (in south wall) with frame + knob */}
       <group position={[0, 0.7, D / 2 + 0.01]}>
@@ -544,6 +609,7 @@ export default function House() {
  */
 function Stove() {
   const triggered = useGameStore((s) => !!s.triggered.fire)
+  const protectedByPrevention = useGameStore((s) => !!s.preventions.fire)
   const trigger = useGameStore((s) => s.triggerDisaster)
   const { hovered, bind } = useClickable(() => trigger('fire'), triggered)
 
@@ -566,7 +632,12 @@ function Stove() {
   return (
     <group position={[-1.78, 0, -1.45]} {...bind}>
       {/* Quaternius oven; the glowing burner discs preserve the fire affordance. */}
-      <InteriorModel asset="/models/house-interior/Oven.glb" scale={0.75} />
+      <InteriorModel
+        asset="/models/house-interior/Oven.glb"
+        scale={0.75}
+        burnActive={triggered}
+        burnStrength={protectedByPrevention ? 0.35 : 1}
+      />
       {burners.map(([dx, dz], i) => (
         <mesh key={i} position={[dx, 1.22, dz]}>
           <cylinderGeometry args={[0.09, 0.09, 0.02, 16]} />
@@ -582,28 +653,87 @@ function Stove() {
   )
 }
 
-/** A compact TV console faces the sofa, making the living zone read instantly. */
+const TV_CHAR_COLOR = new THREE.Color('#090807')
+const TV_SCREEN_BASE_COLOR = new THREE.Color('#172a3a')
+const TV_BASE_COLORS = [
+  new THREE.Color('#6b4a2f'),
+  new THREE.Color('#4b3221'),
+  new THREE.Color('#493328'),
+]
+
+/** A compact TV console faces the sofa and visibly chars when fire reaches it. */
 function Television() {
+  const fireActive = useGameStore((s) => !!s.triggered.fire)
+  const fireReduced = useGameStore((s) => !!s.preventions.fire)
+  const burnMats = useRef([])
+  const scorchMats = useRef([])
+  const scorchMeshes = useRef([])
+  const screenMat = useRef()
+  const fireAge = useRef(0)
+  const burnProgress = useRef(0)
+
+  useFrame((state, delta) => {
+    fireAge.current = fireActive ? fireAge.current + delta : 0
+    const spreadReachedTv = fireActive && !fireReduced && fireAge.current > 1.05
+    const target = spreadReachedTv ? 1 : fireActive && fireReduced ? 0.12 : 0
+    burnProgress.current = THREE.MathUtils.damp(
+      burnProgress.current,
+      target,
+      spreadReachedTv ? 0.95 : 4,
+      delta
+    )
+
+    burnMats.current.forEach((material, index) => {
+      if (!material) return
+      material.color.lerpColors(TV_BASE_COLORS[index], TV_CHAR_COLOR, burnProgress.current)
+      material.roughness = THREE.MathUtils.lerp(0.7, 1, burnProgress.current)
+    })
+
+    scorchMats.current.forEach((material, index) => {
+      if (!material) return
+      material.opacity = burnProgress.current * (index === 0 ? 0.96 : 0.78)
+    })
+    scorchMeshes.current.forEach((mesh, index) => {
+      if (!mesh) return
+      const pulse = 1 + Math.sin(state.clock.elapsedTime * 3 + index) * 0.025
+      mesh.scale.setScalar((0.35 + burnProgress.current * 0.9) * pulse)
+    })
+
+    if (screenMat.current) {
+      screenMat.current.emissiveIntensity = THREE.MathUtils.lerp(
+        0.28,
+        0.015,
+        burnProgress.current
+      )
+      screenMat.current.color.lerpColors(
+        TV_SCREEN_BASE_COLOR,
+        TV_CHAR_COLOR,
+        burnProgress.current * 0.82
+      )
+    }
+  })
+
   return (
     <group position={[-1.15, 0, -0.78]}>
       {/* Low media console */}
       <mesh position={[0, 0.28, 0]} castShadow>
         <boxGeometry args={[1.4, 0.48, 0.38]} />
-        <meshStandardMaterial color="#6b4a2f" flatShading />
+        <meshStandardMaterial ref={(material) => (burnMats.current[0] = material)} color="#6b4a2f" flatShading />
       </mesh>
       <mesh position={[0, 0.28, 0.21]} castShadow>
         <boxGeometry args={[0.82, 0.22, 0.03]} />
-        <meshStandardMaterial color="#4b3221" flatShading />
+        <meshStandardMaterial ref={(material) => (burnMats.current[1] = material)} color="#4b3221" flatShading />
       </mesh>
 
       {/* Warm wood frame, charcoal bezel, and a faintly lit blue screen. */}
       <mesh position={[0, 0.95, -0.04]} castShadow>
         <boxGeometry args={[1.28, 0.82, 0.1]} />
-        <meshStandardMaterial color="#493328" flatShading />
+        <meshStandardMaterial ref={(material) => (burnMats.current[2] = material)} color="#493328" flatShading />
       </mesh>
       <mesh position={[0, 0.95, 0.02]}>
         <boxGeometry args={[1.12, 0.66, 0.035]} />
         <meshStandardMaterial
+          ref={screenMat}
           color="#172a3a"
           emissive="#22465c"
           emissiveIntensity={0.28}
@@ -616,6 +746,32 @@ function Television() {
           <meshStandardMaterial color="#4b3221" flatShading />
         </mesh>
       ))}
+
+      {/* Rear-panel scorch decals face the stove and grow as the fire spreads. */}
+      {[
+        { position: [-0.28, 1.02, -0.096], radius: 0.42, scale: [1.15, 0.92, 1] },
+        { position: [0.32, 0.84, -0.097], radius: 0.34, scale: [0.9, 1.18, 1] },
+        { position: [-0.18, 0.3, -0.196], radius: 0.42, scale: [1.45, 0.66, 1] },
+      ].map((mark, index) => (
+        <mesh
+          key={`tv-scorch-${index}`}
+          ref={(mesh) => (scorchMeshes.current[index] = mesh)}
+          position={mark.position}
+          rotation={[0, Math.PI, index * 0.4]}
+          scale={mark.scale}
+          renderOrder={3}
+        >
+          <circleGeometry args={[mark.radius, 12]} />
+          <meshStandardMaterial
+            ref={(material) => (scorchMats.current[index] = material)}
+            color={index === 0 ? '#050403' : '#1a0e09'}
+            transparent
+            opacity={0}
+            depthWrite={false}
+            roughness={1}
+          />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -626,6 +782,9 @@ function Television() {
  * authored props make the revealed interior feel more lived-in.
  */
 function Furniture() {
+  const fireActive = useGameStore((s) => !!s.triggered.fire)
+  const fireReduced = useGameStore((s) => !!s.preventions.fire)
+
   return (
     <group>
       {/* Kitchen run: stove, sink, and fridge line the back wall at a shared height. */}
@@ -634,17 +793,22 @@ function Furniture() {
         asset="/models/house-interior/Kitchen Sink.glb"
         position={[-0.45, 0, -1.45]}
         scale={0.62}
+        burnActive={fireActive}
+        burnStrength={fireReduced ? 0.16 : 0.82}
       />
       <InteriorModel
         asset="/models/house-interior/Kitchen Fridge.glb"
         position={[1.75, 0, -1.45]}
         scale={0.55}
+        burnActive={fireActive}
+        burnStrength={fireReduced ? 0.06 : 0.4}
       />
 
-      {/* Living area: compact sofa faces the coffee table and the open room. */}
+      {/* Living area: turn the sofa toward the TV across the coffee table. */}
       <InteriorModel
         asset="/models/house-interior/Couch Small-X9msj0gtb5.glb"
         position={[-1.15, 0, 1.1]}
+        rotation={[0, Math.PI, 0]}
         scale={0.55}
       />
       <InteriorModel

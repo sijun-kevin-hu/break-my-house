@@ -43,12 +43,12 @@ export const useGameStore = create((set, get) => ({
       panelDisaster: null,
     }))
 
-    // After the initial impact plays out, lock in the damage state, surface the
-    // info panel, and let the camera settle. The effect itself keeps running.
+    // Surface the result shortly after the event's key beat. This is separate
+    // from effectDuration so hail/fire ambience can continue behind the panel.
     const duration =
       outcome === 'prevented'
-        ? (DISASTERS[id].preventedDuration ?? 650)
-        : DISASTERS[id].effectDuration
+        ? (DISASTERS[id].preventedDuration ?? 450)
+        : (DISASTERS[id].resultDelay ?? DISASTERS[id].effectDuration)
     setTimeout(() => {
       if (!get().triggered[id]) return // reset happened mid-impact
       set((s) => ({
