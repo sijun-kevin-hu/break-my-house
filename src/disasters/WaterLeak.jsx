@@ -16,6 +16,50 @@ const FULL_PUDDLE_TIMINGS = [
   [0.72, 1.15],
 ]
 const REDUCED_PUDDLE_TIMINGS = [[0, 0.72]]
+// RoomFloor's 0.035-unit slab is centered at y=0.12, so this is its exposed
+// surface. Keep the water just above it: a puddle should not read as a low
+// cylinder hovering in the bathroom aisle.
+const BATHROOM_FLOOR_Y = 0.1375
+const PUDDLE_OUTLINES = [
+  [[-1, -0.12], [-0.77, -0.62], [-0.25, -0.84], [0.33, -0.76], [0.88, -0.32], [0.96, 0.2], [0.63, 0.68], [0.12, 0.86], [-0.47, 0.7], [-0.9, 0.35]],
+  [[-0.96, -0.24], [-0.66, -0.72], [-0.1, -0.9], [0.53, -0.7], [0.93, -0.17], [0.78, 0.42], [0.32, 0.76], [-0.38, 0.88], [-0.86, 0.44]],
+  [[-0.92, -0.36], [-0.42, -0.8], [0.16, -0.88], [0.76, -0.55], [0.98, 0.03], [0.69, 0.58], [0.14, 0.82], [-0.5, 0.69], [-0.98, 0.16]],
+  [[-0.9, -0.18], [-0.63, -0.7], [-0.04, -0.86], [0.52, -0.73], [0.94, -0.28], [0.89, 0.3], [0.43, 0.73], [-0.22, 0.87], [-0.78, 0.5]],
+]
+
+function PuddleSurface({ index }) {
+  const shape = useMemo(() => {
+    const outline = PUDDLE_OUTLINES[index]
+    const next = new THREE.Shape()
+    outline.forEach(([x, z], pointIndex) => {
+      if (pointIndex === 0) next.moveTo(x, z)
+      else next.lineTo(x, z)
+    })
+    next.closePath()
+    return next
+  }, [index])
+
+  return (
+    <mesh
+      // The tiny stagger prevents coplanar overlaps while remaining visually
+      // flush with the bathroom's finished floor.
+      position={[0, 0.004 + index * 0.0007, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      renderOrder={5 + index}
+      receiveShadow
+    >
+      <shapeGeometry args={[shape]} />
+      <meshStandardMaterial
+        color={index === 0 ? '#07394b' : '#0b6074'}
+        emissive={index === 0 ? '#02141d' : '#06313e'}
+        emissiveIntensity={0.16}
+        metalness={0.12}
+        roughness={0.22}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
 
 /** Deterministic supply-line burst: an extended spray resolves into persistent water damage. */
 export default function WaterLeak({ active = false }) {
@@ -25,7 +69,6 @@ export default function WaterLeak({ active = false }) {
   const dropletRefs = useRef([])
   const jetRefs = useRef([])
   const puddleRefs = useRef([])
-  const puddleRimMatRefs = useRef([])
   const stainRef = useRef()
   const stainMatRef = useRef()
   const lightRef = useRef()
@@ -114,10 +157,6 @@ export default function WaterLeak({ active = false }) {
         Math.sin(linearProgress * Math.PI * 2.5) * 0.045 * (1 - linearProgress)
       const easedScale = Math.max(0.045, spread + settleRipple)
       puddle.scale.set(x * easedScale, 1, z * easedScale)
-      if (puddleRimMatRefs.current[index]) {
-        const rimReveal = THREE.MathUtils.smootherstep(linearProgress / 0.45, 0, 1)
-        puddleRimMatRefs.current[index].opacity = (index === 0 ? 0.98 : 0.82) * rimReveal
-      }
     })
 
     const stainTarget = reduced
@@ -181,49 +220,21 @@ export default function WaterLeak({ active = false }) {
       </group>
 
       {[
-        // All four bodies sit in the open bathroom aisle. The old first body
+        // All four puddle surfaces sit in the open bathroom aisle. The old first pool
         // overlapped the vanity, hiding most of the protected outcome.
-        [8.3, 0.22, -1.95, 0],
-        [8.34, 0.222, -1.35, 0.12],
-        [8.33, 0.224, -0.55, 0.28],
-        [8.18, 0.226, 0.08, -0.18],
-      ].map(([x, y, z, rotation], index) => (
+        [8.3, -1.95, 0],
+        [8.34, -1.35, 0.12],
+        [8.33, -0.55, 0.28],
+        [8.18, 0.08, -0.18],
+      ].map(([x, z, rotation], index) => (
         <group
           key={`puddle-${index}`}
           ref={(element) => (puddleRefs.current[index] = element)}
-          position={[x, y, z]}
+          position={[x, BATHROOM_FLOOR_Y, z]}
           rotation={[0, rotation, 0]}
           scale={[0.045, 1, 0.045]}
         >
-          <mesh renderOrder={5}>
-            <cylinderGeometry args={[1, 1, 0.08, 18]} />
-            <meshBasicMaterial
-              color={index === 0 ? '#052f45' : '#0a526d'}
-            />
-          </mesh>
-          <mesh position={[0, 0.042, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={6}>
-            <ringGeometry args={[0.82, 1.04, 24]} />
-            <meshBasicMaterial
-              ref={(material) => (puddleRimMatRefs.current[index] = material)}
-              color="#c9f5ff"
-              transparent
-              opacity={0}
-              depthWrite={false}
-            />
-          </mesh>
-          <mesh
-            position={[-0.18, 0.044, -0.16]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            renderOrder={7}
-          >
-            <circleGeometry args={[0.16, 12]} />
-            <meshBasicMaterial
-              color="#effdff"
-              transparent
-              opacity={index === 0 ? 0.52 : 0.36}
-              depthWrite={false}
-            />
-          </mesh>
+          <PuddleSurface index={index} />
         </group>
       ))}
 

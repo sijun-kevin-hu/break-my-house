@@ -22,6 +22,41 @@ export const COVERAGE_DEMO = {
     'Illustrative only. Assumes a covered loss, a $1,000 demo deductible, and sufficient policy limits. Your policy and deductible may differ.',
 }
 
+/** Copy and labels for the first-load, two-step risk-lab briefing. */
+export const INTRODUCTION = {
+  overview: {
+    kicker: 'Insurance risk lab · 1 of 2',
+    title: 'How much can one home risk cost?',
+    lessonLabel: 'The goal',
+    lesson: 'See how a small home upgrade can limit damage, disruption, and avoidable costs before a claim begins.',
+    controlsTitle: 'Explore the house',
+    controls: [
+      { keys: 'Click', label: 'the roof, stove, pipe, power strip, or tree', detail: 'Trigger a risk event' },
+      { keys: 'Drag / WASD', label: 'around the house', detail: 'Orbit the camera' },
+      { keys: 'Scroll', label: 'or use Q / E', detail: 'Zoom the view' },
+    ],
+    nextAction: 'Next: choose protections',
+  },
+  protection: {
+    kicker: 'Insurance risk lab · 2 of 2',
+    title: 'Protect the house before you test it.',
+    summary:
+      'These are prevention choices — practical upgrades and maintenance that can reduce or eliminate a specific loss. Turn one on before you trigger its matching risk.',
+    calloutLabel: 'How the switches work',
+    callout:
+      'A green check means the protection is active. Once you test that risk, its switch locks so you can compare a fair before-and-after result. Reset keeps your choices for the next run.',
+    startAction: 'Start the risk test',
+    backAction: 'Back to overview',
+  },
+}
+
+export const PREVENTION_UI = {
+  toolbarTitle: 'Home protection',
+  activeState: 'Active',
+  inactiveState: 'Off',
+  lockedState: 'Locked',
+}
+
 export const DISASTERS = {
   hail: {
     id: 'hail',
@@ -129,9 +164,49 @@ export const DISASTER_LIST = Object.values(DISASTERS)
  * can declare which event it locks and mitigates.
  */
 export const PREVENTIONS = [
-  { id: 'hail', disasterId: 'hail', emoji: '🌨️', label: 'Impact-resistant roofing' },
-  { id: 'fire', disasterId: 'fire', emoji: '🔥', label: 'Smoke detectors + extinguisher' },
-  { id: 'water', disasterId: 'water', emoji: '💧', label: 'Leak sensor + automatic shutoff' },
-  { id: 'removeTree', disasterId: 'tree', emoji: '🪵', label: 'Remove hazardous tree' },
-  { id: 'electrical', disasterId: 'electrical', emoji: '⚡', label: 'AFCI breakers + electrical inspection' },
+  {
+    id: 'hail',
+    disasterId: 'hail',
+    emoji: '🌨️',
+    label: 'Impact-resistant roofing',
+    toolbarLabel: 'Impact-resistant roof',
+    protects: 'Hailstorm',
+    benefit: 'Reduces roof impacts and repair costs.',
+  },
+  {
+    id: 'fire',
+    disasterId: 'fire',
+    emoji: '🔥',
+    label: 'Smoke detectors + extinguisher',
+    toolbarLabel: 'Smoke alarm + extinguisher',
+    protects: 'Kitchen fire',
+    benefit: 'Helps stop a small stove fire before it spreads.',
+  },
+  {
+    id: 'water',
+    disasterId: 'water',
+    emoji: '💧',
+    label: 'Leak sensor + automatic shutoff',
+    toolbarLabel: 'Leak sensor + shutoff',
+    protects: 'Bathroom water loss',
+    benefit: 'Stops the flow before water reaches more of the home.',
+  },
+  {
+    id: 'removeTree',
+    disasterId: 'tree',
+    emoji: '🪵',
+    label: 'Remove hazardous tree',
+    toolbarLabel: 'Remove hazardous tree',
+    protects: 'Fallen tree',
+    benefit: 'Eliminates this tree strike risk entirely.',
+  },
+  {
+    id: 'electrical',
+    disasterId: 'electrical',
+    emoji: '⚡',
+    label: 'AFCI breakers + electrical inspection',
+    toolbarLabel: 'AFCI + electrical check',
+    protects: 'Electrical arc fire',
+    benefit: 'Trips dangerous arcing before it can spread.',
+  },
 ]
