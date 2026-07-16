@@ -12,7 +12,11 @@ import './styles/ui.css'
 export default function App() {
   return (
     <div className="app">
-      <Canvas shadows camera={{ position: [8, 6, 10], fov: 45 }}>
+      <Canvas
+        shadows="soft"
+        dpr={[1, 2]}
+        camera={{ position: [8, 6, 10], fov: 45 }}
+      >
         <Scene />
       </Canvas>
 

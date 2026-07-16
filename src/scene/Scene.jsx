@@ -10,15 +10,36 @@ import DisasterEffects from '../disasters/DisasterEffects'
 export default function Scene() {
   return (
     <>
-      <Sky sunPosition={[10, 20, 5]} turbidity={2} />
-      <ambientLight intensity={0.85} />
-      <hemisphereLight args={['#ffffff', '#c9d4b8', 0.5]} />
+      {/* Soft atmospheric depth — matches the sky so far-off props melt into it */}
+      <fog attach="fog" args={['#bcdcef', 30, 66]} />
+
+      <Sky
+        sunPosition={[12, 16, 8]}
+        turbidity={3}
+        rayleigh={2.6}
+        mieCoefficient={0.005}
+        mieDirectionalG={0.9}
+      />
+
+      {/* Cool sky / warm ground bounce keeps the flat-shaded facets reading */}
+      <hemisphereLight args={['#dff0ff', '#8a9a5b', 0.55]} />
+      <ambientLight intensity={0.35} />
+
+      {/* Warm key light, high and to the side, for crisp low-poly shadow facets */}
       <directionalLight
-        position={[10, 12, 6]}
-        intensity={1.3}
+        position={[9, 14, 7]}
+        intensity={2.1}
+        color="#fff2df"
         castShadow
         shadow-mapSize={[2048, 2048]}
-      />
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.02}
+      >
+        <orthographicCamera attach="shadow-camera" args={[-16, 16, 16, -16, 0.1, 50]} />
+      </directionalLight>
+
+      {/* Cool fill from the opposite side lifts the shadow side out of black */}
+      <directionalLight position={[-8, 6, -6]} intensity={0.4} color="#bcd4ff" />
 
       <Ground />
       <House />

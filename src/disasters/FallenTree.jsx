@@ -30,13 +30,21 @@ export default function FallenTree({ settled = false }) {
     >
       {/* Trunk */}
       <mesh position={[0, 1.6, 0]} castShadow>
-        <cylinderGeometry args={[0.25, 0.35, 3.2, 8]} />
-        <meshStandardMaterial color="#6b4a2f" flatShading />
+        <cylinderGeometry args={[0.25, 0.35, 3.2, 6]} />
+        <meshStandardMaterial color="#7a5334" flatShading />
       </mesh>
-      {/* Canopy */}
+      {/* Canopy — clustered faceted icosahedrons to match the yard trees */}
       <mesh position={[0, 3.6, 0]} castShadow>
-        <sphereGeometry args={[1.3, 10, 10]} />
-        <meshStandardMaterial color="#3f7a38" flatShading />
+        <icosahedronGeometry args={[1.3, 0]} />
+        <meshStandardMaterial color="#3f8f45" flatShading />
+      </mesh>
+      <mesh position={[0.7, 3.2, 0.4]} castShadow>
+        <icosahedronGeometry args={[0.8, 0]} />
+        <meshStandardMaterial color="#4a9b4e" flatShading />
+      </mesh>
+      <mesh position={[-0.6, 3.3, -0.3]} castShadow>
+        <icosahedronGeometry args={[0.7, 0]} />
+        <meshStandardMaterial color="#37833e" flatShading />
       </mesh>
     </group>
   )

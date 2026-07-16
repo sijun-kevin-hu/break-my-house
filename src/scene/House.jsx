@@ -68,7 +68,7 @@ function Wall({ id, normal, position, size, color }) {
   return (
     <mesh ref={meshRef} position={position} castShadow receiveShadow>
       <boxGeometry args={size} />
-      <meshStandardMaterial ref={matRef} color={color} transparent opacity={1} />
+      <meshStandardMaterial ref={matRef} color={color} flatShading transparent opacity={1} />
     </mesh>
   )
 }
@@ -122,12 +122,12 @@ function Roof({ color }) {
   return (
     <group>
       <mesh ref={roofRef} position={[0, 3.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-        <coneGeometry args={[2.8, 1.6, 4]} />
+        <coneGeometry args={[2.9, 1.7, 4]} />
         <meshStandardMaterial ref={roofMatRef} color={color} flatShading transparent opacity={1} />
       </mesh>
       <mesh ref={chimneyRef} position={[1.2, 3.4, -0.6]} castShadow>
         <boxGeometry args={[0.5, 1.2, 0.5]} />
-        <meshStandardMaterial ref={chimneyMatRef} color="#8f5b4a" transparent opacity={1} />
+        <meshStandardMaterial ref={chimneyMatRef} color="#8f5b4a" flatShading transparent opacity={1} />
       </mesh>
     </group>
   )
@@ -147,10 +147,16 @@ export default function House() {
 
   return (
     <group position={[0, 0, 0]}>
+      {/* Foundation plinth — grounds the house on the terrain */}
+      <mesh position={[0, -0.05, 0]} castShadow receiveShadow>
+        <boxGeometry args={[W + 0.4, 0.3, D + 0.4]} />
+        <meshStandardMaterial color="#b9a988" flatShading />
+      </mesh>
+
       {/* Floor slab */}
       <mesh position={[0, 0.05, 0]} receiveShadow>
         <boxGeometry args={[W, 0.1, D]} />
-        <meshStandardMaterial color={COLORS.floor} />
+        <meshStandardMaterial color={COLORS.floor} flatShading />
       </mesh>
 
       {/* Rug in the living area */}
@@ -167,22 +173,48 @@ export default function House() {
       {/* Roof (cartoon prism via rotated cone) — fades as camera tilts top-down */}
       <Roof color={roofColor} />
 
-      {/* Door (in south wall) */}
-      <mesh position={[0, 0.7, D / 2 + 0.01]}>
-        <boxGeometry args={[0.8, 1.4, 0.05]} />
-        <meshStandardMaterial color={COLORS.door} />
-      </mesh>
-
-      {/* Windows (in south wall) */}
-      {[-1.2, 1.2].map((x) => (
-        <mesh key={x} position={[x, 1.5, D / 2 + 0.01]}>
-          <boxGeometry args={[0.7, 0.7, 0.05]} />
-          <meshStandardMaterial
-            color={COLORS.window}
-            emissive={COLORS.window}
-            emissiveIntensity={0.2}
-          />
+      {/* Door (in south wall) with frame + knob */}
+      <group position={[0, 0.7, D / 2 + 0.01]}>
+        <mesh position={[0, 0, -0.02]}>
+          <boxGeometry args={[0.96, 1.56, 0.05]} />
+          <meshStandardMaterial color="#8a6a45" flatShading />
         </mesh>
+        <mesh>
+          <boxGeometry args={[0.8, 1.4, 0.06]} />
+          <meshStandardMaterial color={COLORS.door} flatShading />
+        </mesh>
+        <mesh position={[0.28, 0, 0.05]}>
+          <sphereGeometry args={[0.05, 12, 12]} />
+          <meshStandardMaterial color="#e8c15a" metalness={0.3} roughness={0.4} />
+        </mesh>
+      </group>
+
+      {/* Windows (in south wall) with frames */}
+      {[-1.2, 1.2].map((x) => (
+        <group key={x} position={[x, 1.5, D / 2 + 0.01]}>
+          <mesh position={[0, 0, -0.02]}>
+            <boxGeometry args={[0.86, 0.86, 0.05]} />
+            <meshStandardMaterial color="#f3ede0" flatShading />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[0.7, 0.7, 0.06]} />
+            <meshStandardMaterial
+              color={COLORS.window}
+              emissive={COLORS.window}
+              emissiveIntensity={0.25}
+              flatShading
+            />
+          </mesh>
+          {/* Muntin bars (cross) */}
+          <mesh position={[0, 0, 0.05]}>
+            <boxGeometry args={[0.72, 0.05, 0.02]} />
+            <meshStandardMaterial color="#f3ede0" />
+          </mesh>
+          <mesh position={[0, 0, 0.05]}>
+            <boxGeometry args={[0.05, 0.72, 0.02]} />
+            <meshStandardMaterial color="#f3ede0" />
+          </mesh>
+        </group>
       ))}
 
       <Furniture />
@@ -200,12 +232,12 @@ function Furniture() {
       {/* Kitchen counter — back-left corner */}
       <mesh position={[-1.4, 0.55, -1.0]} castShadow>
         <boxGeometry args={[1.0, 0.9, 0.7]} />
-        <meshStandardMaterial color="#e8e2d5" />
+        <meshStandardMaterial color="#e8e2d5" flatShading />
       </mesh>
       {/* Stove top on the counter */}
       <mesh position={[-1.4, 1.02, -1.0]} castShadow>
         <boxGeometry args={[0.7, 0.06, 0.6]} />
-        <meshStandardMaterial color="#2f2f33" />
+        <meshStandardMaterial color="#2f2f33" flatShading />
       </mesh>
       {[-0.15, 0.15].map((dx) =>
         [-0.13, 0.13].map((dz) => (
@@ -219,26 +251,57 @@ function Furniture() {
       {/* Fridge — back-right corner */}
       <mesh position={[1.4, 0.75, -1.05]} castShadow>
         <boxGeometry args={[0.8, 1.5, 0.7]} />
-        <meshStandardMaterial color="#dfe3e6" />
+        <meshStandardMaterial color="#dfe3e6" flatShading />
       </mesh>
 
-      {/* Couch — front-left, on the rug */}
+      {/* Couch — front-left, on the rug (base, back, arms) */}
       <group position={[-0.6, 0, 0.4]}>
         <mesh position={[0, 0.3, 0]} castShadow>
           <boxGeometry args={[1.5, 0.4, 0.7]} />
-          <meshStandardMaterial color="#4f6d5b" />
+          <meshStandardMaterial color="#4f6d5b" flatShading />
         </mesh>
         <mesh position={[0, 0.6, -0.28]} castShadow>
           <boxGeometry args={[1.5, 0.6, 0.15]} />
-          <meshStandardMaterial color="#59795f" />
+          <meshStandardMaterial color="#59795f" flatShading />
         </mesh>
+        {[-0.72, 0.72].map((ax) => (
+          <mesh key={ax} position={[ax, 0.42, 0]} castShadow>
+            <boxGeometry args={[0.16, 0.5, 0.7]} />
+            <meshStandardMaterial color="#59795f" flatShading />
+          </mesh>
+        ))}
       </group>
 
-      {/* Coffee table */}
-      <mesh position={[-0.6, 0.35, 1.0]} castShadow>
-        <boxGeometry args={[0.9, 0.1, 0.5]} />
-        <meshStandardMaterial color="#6b4a2f" />
-      </mesh>
+      {/* Coffee table with legs */}
+      <group position={[-0.6, 0, 1.0]}>
+        <mesh position={[0, 0.35, 0]} castShadow>
+          <boxGeometry args={[0.9, 0.1, 0.5]} />
+          <meshStandardMaterial color="#6b4a2f" flatShading />
+        </mesh>
+        {[
+          [-0.38, 0.2],
+          [0.38, 0.2],
+          [-0.38, -0.2],
+          [0.38, -0.2],
+        ].map((p, i) => (
+          <mesh key={i} position={[p[0], 0.15, p[1]]} castShadow>
+            <boxGeometry args={[0.08, 0.3, 0.08]} />
+            <meshStandardMaterial color="#553a24" flatShading />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Potted plant in the corner for a bit of life */}
+      <group position={[1.3, 0, 0.9]}>
+        <mesh position={[0, 0.2, 0]} castShadow>
+          <cylinderGeometry args={[0.16, 0.12, 0.4, 6]} />
+          <meshStandardMaterial color="#b5623f" flatShading />
+        </mesh>
+        <mesh position={[0, 0.55, 0]} castShadow>
+          <icosahedronGeometry args={[0.3, 0]} />
+          <meshStandardMaterial color="#4a9b4e" flatShading />
+        </mesh>
+      </group>
     </group>
   )
 }
