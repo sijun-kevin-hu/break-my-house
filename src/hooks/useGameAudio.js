@@ -84,7 +84,7 @@ export default function useGameAudio() {
     const previous = previousTriggered.current;
 
     if (triggered?.hail && !previous.hail) {
-      hailSound.play();
+      hailSound.play(10);
     }
 
     if (!triggered?.hail && previous.hail) {
