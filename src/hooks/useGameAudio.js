@@ -112,6 +112,44 @@ function createElectricalArc(reduced) {
   };
 }
 
+function createSmokeAlarm() {
+  if (typeof window === "undefined") return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  const context = new AudioContextClass();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "square";
+  oscillator.frequency.value = 2900;
+  gain.gain.value = 0;
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start();
+  context.resume().catch(() => {});
+
+  const beep = () => {
+    const start = context.currentTime;
+    gain.gain.cancelScheduledValues(start);
+    gain.gain.setValueAtTime(0.001, start);
+    gain.gain.exponentialRampToValueAtTime(0.09, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.16);
+  };
+  beep();
+  const interval = window.setInterval(beep, 420);
+
+  return {
+    stop() {
+      window.clearInterval(interval);
+      try {
+        oscillator.stop();
+      } catch {
+        // The alarm has already been stopped.
+      }
+      context.close().catch(() => {});
+    },
+  };
+}
+
 export default function useGameAudio() {
   const triggered = useGameStore((state) => state.triggered);
   const preventions = useGameStore((state) => state.preventions);
@@ -142,6 +180,9 @@ export default function useGameAudio() {
   const previousPreventions = useRef({});
   const waterBurst = useRef(null);
   const electricalArc = useRef(null);
+  const smokeAlarm = useRef(null);
+  const protectedFireTimeout = useRef(null);
+  const electricalSmokeAlarmTimeout = useRef(null);
 
   useEffect(() => {
     const previous = previousTriggered.current;
@@ -157,11 +198,29 @@ export default function useGameAudio() {
     if (triggered?.fire && !previous.fire) {
       fireSound.play();
       fireLoopSound.play();
+      if (preventions?.fire) {
+        const fireOutMs = DISASTERS.fire.protectedSequence.fireOut * 1000;
+        smokeAlarm.current?.stop();
+        smokeAlarm.current = createSmokeAlarm();
+        window.clearTimeout(protectedFireTimeout.current);
+        protectedFireTimeout.current = window.setTimeout(() => {
+          const state = useGameStore.getState();
+          if (!state.triggered.fire || !state.preventions.fire) return;
+          fireSound.stop();
+          fireLoopSound.stop();
+          smokeAlarm.current?.stop();
+          smokeAlarm.current = null;
+        }, fireOutMs);
+      }
     }
 
     if (!triggered?.fire && previous.fire) {
+      window.clearTimeout(protectedFireTimeout.current);
+      protectedFireTimeout.current = null;
       fireSound.stop();
       fireLoopSound.stop();
+      smokeAlarm.current?.stop();
+      smokeAlarm.current = null;
     }
 
     if (triggered?.water && !previous.water) {
@@ -183,11 +242,30 @@ export default function useGameAudio() {
     if (triggered?.electrical && !previous.electrical) {
       electricalArc.current?.stop();
       electricalArc.current = createElectricalArc(!!preventions?.electrical);
+      const hasSmokeAlarm = DISASTERS.electrical.smokeAlarmPreventionIds?.some(
+        (id) => preventions?.[id]
+      );
+      if (!preventions?.electrical && hasSmokeAlarm) {
+        window.clearTimeout(electricalSmokeAlarmTimeout.current);
+        electricalSmokeAlarmTimeout.current = window.setTimeout(() => {
+          const state = useGameStore.getState();
+          const detectorStillActive = DISASTERS.electrical.smokeAlarmPreventionIds?.some(
+            (id) => state.preventions?.[id]
+          );
+          if (!state.triggered.electrical || state.preventions.electrical || !detectorStillActive) return;
+          smokeAlarm.current?.stop();
+          smokeAlarm.current = createSmokeAlarm();
+        }, DISASTERS.electrical.smokeAlarmDelay * 1000);
+      }
     }
 
     if (!triggered?.electrical && previous.electrical) {
+      window.clearTimeout(electricalSmokeAlarmTimeout.current);
+      electricalSmokeAlarmTimeout.current = null;
       electricalArc.current?.stop();
       electricalArc.current = null;
+      smokeAlarm.current?.stop();
+      smokeAlarm.current = null;
     }
 
     if (
@@ -224,6 +302,9 @@ export default function useGameAudio() {
       hailSound.stop();
       fireSound.stop();
       fireLoopSound.stop();
+      window.clearTimeout(protectedFireTimeout.current);
+      window.clearTimeout(electricalSmokeAlarmTimeout.current);
+      smokeAlarm.current?.stop();
       treeSound.stop();
       successSound.stop();
       waterBurst.current?.stop();

@@ -35,7 +35,13 @@ export default function InfoPanel() {
       )}
 
       <h3>What happened</h3>
-      <p>{prevented ? (d.whatPrevented ?? d.whatHappened) : d.whatHappened}</p>
+      <p>
+        {prevented
+          ? (d.whatPrevented ?? d.whatHappened)
+          : reduced
+            ? (d.whatHappenedReduced ?? d.whatHappened)
+            : d.whatHappened}
+      </p>
 
       <section className="cost-comparison" aria-label={COVERAGE_DEMO.snapshotTitle}>
         <h3>{COVERAGE_DEMO.snapshotTitle}</h3>

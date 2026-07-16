@@ -1730,6 +1730,7 @@ function Stove() {
   )
 
   const burnerMats = useRef([])
+  const damageMats = useRef([])
   const burners = []
   for (const dx of [-0.15, 0.15]) for (const dz of [-0.13, 0.13]) burners.push([dx, dz])
 
@@ -1742,6 +1743,11 @@ function Stove() {
         : 0.15 + Math.sin(t * 2.5) * 0.08 // subtle idle "I'm interactive" glow
     burnerMats.current.forEach((m) => {
       if (m) m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, target, delta * 8)
+    })
+    damageMats.current.forEach((material, index) => {
+      if (!material) return
+      const targetOpacity = triggered ? (protectedByPrevention ? 0.4 : index === 0 ? 0.78 : 0.62) : 0
+      material.opacity = THREE.MathUtils.damp(material.opacity, targetOpacity, triggered ? 2.8 : 4, delta)
     })
   })
 
@@ -1765,6 +1771,28 @@ function Stove() {
           />
         </mesh>
       ))}
+      {/* Persistent stovetop soot and a warped burner make the source damage readable. */}
+      <mesh position={[-0.015, 1.247, 0.02]} rotation={[-Math.PI / 2, 0.22, 0]} scale={[0.42, 0.31, 1]} renderOrder={18}>
+        <circleGeometry args={[1, 9]} />
+        <meshBasicMaterial
+          ref={(material) => (damageMats.current[0] = material)}
+          color="#130d0b"
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh position={[0.17, 1.258, -0.13]} rotation={[Math.PI / 2, 0.18, 0.12]} renderOrder={19}>
+        <torusGeometry args={[0.12, 0.018, 6, 9, 4.9]} />
+        <meshStandardMaterial
+          ref={(material) => (damageMats.current[1] = material)}
+          color="#2b211e"
+          transparent
+          opacity={0}
+          roughness={0.78}
+          depthWrite={false}
+        />
+      </mesh>
       {hovered && (
         <DisasterTargetCue
           position={[0, 1.65, 0]}

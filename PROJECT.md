@@ -25,9 +25,9 @@ technical convention or invariant changes.
 | Sims-style cutaway | Partial | Exterior walls, full-height interior partitions, and doors use smooth angle/pitch/zoom opacity. Bedroom walls now extend to the wing wall height with matching infill above every doorway, removing the permanently open upper section. Both roof sections use the same pitch/zoom opacity function; the wing roof spans the full shared-wall run and tucks beneath the original eave, while its materials disable depth writes and omit a thresholded shadow. Production build passes; manual orbit verification remains. |
 | Roomy 3BR/1BA furnished interior | Partial | The wing is now deeper, giving every bedroom more floor area. The primary bed now rests against the bathroom-side wall and faces a dresser plus wall-mounted TV centered together on the opposite wall; its portable heater now sits in the open bedside strip instead of intersecting the bed silhouette. In both secondary bedrooms, the beds sit against the north wall and the dressers sit flush to their side walls, aligned beside the beds. The bathroom vanity is placed on the south wall with a compact countertop handle, a rectangular basin, and a small rectangular shutoff tab below it; no pipe or U-shaped control passes through the sink. The room also includes a mirror, storage, towels, bath mat, and hamper, while the bathtub has no exposed fixture. In the original core, the TV now sits on the west wall opposite a rotated sofa, a taller floor lamp and plant add vertical balance, and the sink sits close to the stove. Production build passes; room scale, furniture clearance, circulation, wall joins, roof alignment, and default framing need manual visual verification. |
 | Hailstorm | Partial | Dense deterministic hail now strikes both roof sections, with the wing using the same staged dent, color-damage, prevention, and persistence logic as the core roof. Airborne hail is clipped at both roof surfaces, impact chips stay above their roof planes, and settled hail excludes the combined core-and-wing roof footprint. Low-poly drifts remain outside the complete house. Production build passes; the corrected animation and pileup still need manual visual verification. |
-| Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and the east wall; it leaves a dense, staged trail of overlapping floor char. The aftermath now uses shallow raised burn geometry whose lower edge clears both the slab and rug, while prevention keeps the spectacle and damage contained. Production build passes; the expanded char path still needs manual visual verification. |
+| Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and the east wall; it leaves a dense, staged trail of overlapping floor char plus persistent stovetop soot and a warped burner. With smoke detectors + extinguisher enabled, a procedural smoke alarm sounds while a red extinguisher enters, sweeps foam across the stovetop flame, and fades after the flame is out; only the localized reduced scorch remains. Production build passes; the full/protected sequence still needs manual visual and audio verification. |
 | Bathroom water loss | Partial | Clicking the vanity shutoff immediately starts a deterministic under-sink burst aimed into the bathroom, with no trigger-time geometry mount. Three anchored core jets ease rapidly to full reach while 64 arcing droplets launch in a tight stagger. A dark, opaque pool starts growing in the open aisle on the first frame, followed by three overlapping pools with authored ease-out timing and a subtle settling ripple. Their raised bodies, bright cyan perimeter rings, and pale highlights keep all four volumes legible against the teal floor without transparent-surface sorting. Spray and matching seeded water audio persist until reset. A visible leak sensor + automatic shutoff limits the spray and sound to 1.35 seconds, reduces their density, and keeps one clearly exposed puddle contained. Production build passes; the smoother effect needs manual visual/audio verification. |
-| Electrical arc fire | Partial | The primary-bedroom power strip visibly carries five occupied sockets feeding the TV, console, phone charger, floor lamp, and portable heater. Clicking only the strip starts deterministic blue-white arcs, then sequentially pops the connected devices, races into the wall circuit, and ignites a bounded cord-path bedroom fire with sparks, multi-source smoke, device shutdown, melted debris, and a broad persistent scorch trail. AFCI breakers + an electrical inspection add a visible protected breaker, trip the circuit at 0.48 seconds, shorten the procedural audio, and stop the event at a small singe before it spreads. Production build passes; strip discoverability, cord routing, effect placement, audio, and full/protected timing need manual browser verification. |
+| Electrical arc fire | Partial | The primary-bedroom power strip visibly carries five occupied sockets feeding the TV, console, phone charger, floor lamp, and portable heater. Clicking only the strip starts deterministic blue-white arcs, then sequentially pops the connected devices, races into the wall circuit, and ignites a bounded cord-path bedroom fire with sparks, multi-source smoke, device shutdown, melted debris, and a broad persistent scorch trail. When smoke detectors are selected but AFCI protection is not, the smoke alarm starts with the first flame, not the initial arc, and continues without reducing the outcome. AFCI breakers + an electrical inspection add a visible protected breaker, trip the circuit at 0.48 seconds, shorten the procedural audio, and stop the event at a small singe before it spreads. Production build passes; strip discoverability, cord routing, effect placement, audio, and full/protected timing need manual browser verification. |
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
 | Object-triggered disasters | Partial | Roof → hail, stove → fire, bathroom supply line → water loss, overloaded bedroom power strip → electrical arc fire, tree/stump → tree risk. The toolbar lists every target after one “Click on the…” instruction and strikes through the one that has fired; reset restores every target name. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. The new power-strip path is build-verified but still needs manual interaction verification. |
 | Discoverable interactions | Done | Live triggers use hover highlights, idle affordance, a pointer cursor, and a non-intercepting 3D pulse-ring halo; fired triggers stop reading as interactive. |
@@ -62,8 +62,9 @@ additional room-specific disasters beyond the water and electrical losses, and m
 - Fire has a staged burst that moves from the stove through the counter, TV,
   fridge, living area, dining nook, and east wall, with flickering flames, smoke,
   sparks, light, a dense overlapping trail of floor char, wall scorch, and timed object
-  charring. Smoke detectors plus an extinguisher keep it at the stove and stop
-  its wider spread.
+  charring, including persistent soot and a warped burner on the stove. Smoke detectors plus an extinguisher keep it at the stove: an alarm
+  sounds until the extinguisher's foam sweep puts out the flame, then both the
+  extinguisher and active fire fade away.
 - The bathroom supply-line loss erupts from the vanity shutoff and keeps throwing
   dense jets and arcing droplets into the room until reset. Its geometry is
   prepared before interaction, so the anchored jets and first pool begin on the
@@ -79,7 +80,8 @@ additional room-specific disasters beyond the water and electrical losses, and m
   connected devices, races into the wall circuit, and ignites a bounded bedroom
   fire with a broad strip-to-device scorch trail. Enabling AFCI breakers adds a
   protected panel that trips almost immediately, sharply reducing the
-  spectacle, procedural audio, damage, and panel cost.
+  spectacle, procedural audio, damage, and panel cost. Selecting smoke detectors
+  without AFCI protection also sounds an alert from the first electrical flame onward.
 - The fallen tree has an anticipatory windup, a contact-timed shake/debris
   burst, persistent roof hole, broken edges, and hanging interior ceiling
   aftermath. Removing the identified hazardous tree creates a stump instead.
@@ -93,7 +95,7 @@ additional room-specific disasters beyond the water and electrical losses, and m
 | Prevention | Mitigates | Result |
 |---|---|---|
 | Impact-resistant roofing | Hailstorm | Fewer hail impacts, lighter roof scuffs, and a lower claim cost. |
-| Smoke detectors + extinguisher | Kitchen fire | Smaller fire, less spread/scorching, and a lower claim cost. |
+| Smoke detectors + extinguisher | Kitchen fire; alerts on electrical fire | A smoke alarm sounds while an extinguisher sweeps foam across the stove, then the flame is out with smaller scorch and a lower claim cost. Without AFCI protection, it begins with the first electrical flame and continues without changing that loss. |
 | Leak sensor + automatic shutoff | Bathroom water loss | Shorter spray, a small contained puddle, and a lower claim cost. |
 | Remove hazardous tree | Fallen tree | Replaces the tree with a stump and eliminates that specific strike and claim. |
 | AFCI breakers + electrical inspection | Electrical arc fire | Trips the overloaded bedroom circuit after a brief spark, limits scorch and connected-device damage, and lowers the claim cost. |
@@ -159,7 +161,9 @@ src/
 - [ ] With sound enabled, click roof, stove, bathroom pipe, power strip, and tree
   and confirm one correct sound each. Confirm the protected electrical crackle
   ends with the breaker trip while the full burst continues through its authored
-  sequence. The prevention success cue remains blocked by the missing audio asset listed above.
+  sequence, and that smoke detectors without AFCI protection begin the smoke
+  alarm with the first electrical flame, not the initial arc. The prevention success cue remains
+  blocked by the missing audio asset listed above.
 - [ ] Click roof, observe hail stopping at both roof surfaces (including while
   the cutaway reveals the rooms) and damage, then reset and repeat with
   impact-resistant roofing; verify both visual damage and panel cost shrink.
@@ -171,9 +175,11 @@ src/
   remains reachable.
 - [ ] Trigger any disaster and, before pressing “Got it,” verify the other
   disaster objects cannot be selected but mouse and keyboard camera movement still work; confirm only its matching toolbar target name is struck through, then acknowledge the panel and verify another unfired object can trigger. Reset and confirm every target name is restored.
-- [ ] Click stove, repeat with smoke detectors + extinguisher; verify fire
-  spread and panel cost shrink; confirm the raised kitchen-floor char remains
-  visible above the slab and rug from low, middle, and overhead camera pitches.
+- [ ] Click stove, repeat with smoke detectors + extinguisher; verify the smoke
+  alarm plays only until the extinguisher's foam sweep puts out the stove flame,
+  then the extinguisher fades, fire spread and panel cost shrink, and the raised
+  kitchen-floor char plus the stove's soot and warped burner remain visible from
+  low, middle, and overhead camera pitches.
 - [ ] Verify the west-wall TV is clearly separated from the stove, the sofa
   faces it across the enlarged rug, and the unprotected fire still reaches the
   TV at the authored beat while prevention contains the event at the stove.

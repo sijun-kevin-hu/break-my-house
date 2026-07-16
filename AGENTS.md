@@ -112,8 +112,13 @@ must be present and clickable before the tree disaster is triggered.
   The water-loss burst is a seeded Web Audio effect configured in
   `src/data/disasters.js`; the unprotected sound loops until reset while the
   automatic-shutoff version uses its short authored duration. It has no asset file.
-  The electrical arc is also a seeded Web Audio effect; its protected version
-  ends at the AFCI trip while the full version plays the complete authored burst.
+  The protected kitchen-fire smoke alarm is a procedural Web Audio cue that
+  stops at the configured extinguisher fire-out beat. The same detector starts
+  at the first flame beat and sounds throughout an unprotected electrical fire
+  when the fire prevention is active; this alert does not change the electrical
+  outcome. The electrical arc is also a seeded Web Audio effect; its protected
+  version ends at the AFCI trip while the full version plays the complete
+  authored burst.
 
 ## Adding a disaster
 

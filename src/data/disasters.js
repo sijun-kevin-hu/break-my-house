@@ -44,8 +44,17 @@ export const DISASTERS = {
     emoji: '🔥',
     effectDuration: 4000,
     resultDelay: 1700,
+    reducedResultDelay: 3100,
+    protectedSequence: {
+      extinguisherArrival: 0.55,
+      foamStart: 0.95,
+      fireOut: 2.65,
+      extinguisherFadeEnd: 3.1,
+    },
     riskWeight: 30,
     whatHappened: 'An unattended stovetop fire spread to the cabinets before it was put out.',
+    whatHappenedReduced:
+      'The smoke alarm alerted the household while the fire was still on the stove, and an extinguisher put it out before it spread.',
     repairEstimate: 25000,
     repairEstimateReduced: 4000,
     prevention: 'Smoke detectors + extinguisher',
@@ -106,6 +115,8 @@ export const DISASTERS = {
     repairEstimateReduced: 1500,
     prevention: 'AFCI breakers + electrical inspection',
     preventionIds: ['electrical'],
+    smokeAlarmPreventionIds: ['fire'],
+    smokeAlarmDelay: 0.72,
     preventionTip:
       'Arc-fault circuit interrupters can shut down dangerous arcing before it spreads. Have a qualified electrician inspect damaged wiring and overloaded circuits.',
   },

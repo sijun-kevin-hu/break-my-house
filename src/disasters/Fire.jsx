@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGameStore } from '../store/useGameStore'
+import { DISASTERS } from '../data/disasters'
 
 // Anchored at the kitchen stove (back-left corner) so the fire reads as coming
 // straight off the burners the player clicked.
@@ -33,6 +34,12 @@ const SPREAD_LIGHTS = [
   { position: [2.45, 1.6, -0.12], delay: 3.5, distance: 3.8 },
 ]
 
+const PROTECTED_SEQUENCE = DISASTERS.fire.protectedSequence
+const EXTINGUISHER_START = [STOVE[0] + 1.45, 0.72, STOVE[1] + 0.58]
+const EXTINGUISHER_STOP = [STOVE[0] + 0.58, 0.72, STOVE[1] + 0.2]
+const NOZZLE = [STOVE[0] + 0.42, 1.35, STOVE[1] + 0.12]
+const clamp01 = (value) => Math.min(1, Math.max(0, value))
+
 /**
  * Choreographed interior fire: the stove bursts first, then the counter, TV,
  * fridge, living area, and east wall ignite in a readable sequence. Prevention
@@ -45,6 +52,9 @@ export default function Fire() {
   const burstRef = useRef()
   const sparkRefs = useRef([])
   const spreadLightRefs = useRef([])
+  const extinguisherRef = useRef()
+  const extinguisherMaterialRefs = useRef([])
+  const foamRefs = useRef([])
   const ageRef = useRef(0)
   const smoke = useMemo(
     () =>
@@ -78,6 +88,12 @@ export default function Fire() {
     const age = ageRef.current
     const t = clock.elapsedTime
     const burst = age < 0.9 ? Math.sin((age / 0.9) * Math.PI) : 0
+    const containment = reduced
+      ? clamp01(
+          (age - PROTECTED_SEQUENCE.foamStart) /
+            (PROTECTED_SEQUENCE.fireOut - PROTECTED_SEQUENCE.foamStart)
+        )
+      : 0
 
     flamesRef.current.forEach((f, i) => {
       if (!f) return
@@ -85,14 +101,17 @@ export default function Fire() {
       const spreadFlame = flame.delay > 0
       const localAge = age - flame.delay
       const enabled = !spreadFlame || !reduced
-      f.visible = enabled && localAge >= 0
+      f.visible =
+        enabled &&
+        localAge >= 0 &&
+        (!reduced || age < PROTECTED_SEQUENCE.fireOut)
       if (!f.visible) return
       const grow = spreadFlame ? Math.min(1, localAge / 0.48) : 1
       const spreadBurst = spreadFlame && localAge < 0.7
         ? Math.sin((localAge / 0.7) * Math.PI) * 0.55
         : 0
       const s = 1 + Math.sin(t * 12 + i * 2) * 0.25
-      const base = flame.size * grow * (reduced ? 0.72 : 1)
+      const base = flame.size * grow * (reduced ? 0.72 * (1 - containment * 0.98) : 1)
       f.scale.set(
         base * s * (1 + burst * 0.9 + spreadBurst),
         base * (1 + Math.sin(t * 9 + i) * 0.35) * (1 + burst * 1.55 + spreadBurst),
@@ -100,7 +119,7 @@ export default function Fire() {
       )
     })
     if (lightRef.current) {
-      const severity = reduced ? 0.58 : 1
+      const severity = reduced ? 0.58 * (1 - containment) : 1
       lightRef.current.intensity = (8 + Math.sin(t * 15) * 2.5 + burst * 14) * severity
     }
     spreadLightRefs.current.forEach((light, index) => {
@@ -131,12 +150,49 @@ export default function Fire() {
     smokeRefs.current.forEach((m, i) => {
       if (!m) return
       const localAge = age - smoke[i].delay
-      m.visible = localAge >= 0
+      m.visible = localAge >= 0 && (!reduced || age < PROTECTED_SEQUENCE.fireOut)
       if (!m.visible) return
       const cycle = ((localAge + smoke[i].offset) % 2.5) / 2.5
       m.position.y = smoke[i].y + 0.16 + cycle * 2.4
-      m.material.opacity = (reduced ? 0.38 : 0.64) * (1 - cycle)
+      m.material.opacity = (reduced ? 0.38 * (1 - containment) : 0.64) * (1 - cycle)
       m.scale.setScalar((reduced ? 0.18 : 0.28) + cycle * (reduced ? 0.48 : 0.72))
+    })
+
+    if (extinguisherRef.current) {
+      const arrival = clamp01(age / PROTECTED_SEQUENCE.extinguisherArrival)
+      const fade = reduced
+        ? 1 - clamp01(
+            (age - PROTECTED_SEQUENCE.fireOut) /
+              (PROTECTED_SEQUENCE.extinguisherFadeEnd - PROTECTED_SEQUENCE.fireOut)
+          )
+        : 0
+      extinguisherRef.current.visible = reduced && age < PROTECTED_SEQUENCE.extinguisherFadeEnd
+      extinguisherRef.current.position.set(
+        EXTINGUISHER_START[0] + (EXTINGUISHER_STOP[0] - EXTINGUISHER_START[0]) * arrival,
+        EXTINGUISHER_START[1],
+        EXTINGUISHER_START[2] + (EXTINGUISHER_STOP[2] - EXTINGUISHER_START[2]) * arrival
+      )
+      extinguisherRef.current.rotation.y = -0.45 - arrival * 0.34
+      extinguisherRef.current.scale.setScalar(0.78 + arrival * 0.22 * fade)
+      extinguisherMaterialRefs.current.forEach((material) => {
+        if (material) material.opacity = fade
+      })
+    }
+
+    foamRefs.current.forEach((foam, index) => {
+      if (!foam) return
+      const elapsed = age - PROTECTED_SEQUENCE.foamStart - index * 0.047
+      const active = reduced && elapsed >= 0 && age < PROTECTED_SEQUENCE.fireOut
+      foam.visible = active
+      if (!active) return
+      const flight = (elapsed % 0.52) / 0.52
+      foam.position.set(
+        NOZZLE[0] + (STOVE[0] - NOZZLE[0]) * flight,
+        NOZZLE[1] + (1.2 - NOZZLE[1]) * flight + Math.sin(flight * Math.PI) * 0.22,
+        NOZZLE[2] + (STOVE[1] - NOZZLE[2]) * flight + ((index % 3) - 1) * 0.08
+      )
+      foam.scale.setScalar(0.08 + flight * 0.18)
+      foam.material.opacity = (1 - flight) * 0.88
     })
   })
 
@@ -193,6 +249,52 @@ export default function Fire() {
         <mesh key={i} position={[s.x, 1.5, s.z]} ref={(el) => (smokeRefs.current[i] = el)}>
           <sphereGeometry args={[1, 8, 8]} />
           <meshStandardMaterial color="#666" transparent opacity={0.4} />
+        </mesh>
+      ))}
+      <group ref={extinguisherRef} visible={false} position={EXTINGUISHER_START}>
+        <mesh position={[0, 0.34, 0]} castShadow>
+          <cylinderGeometry args={[0.16, 0.19, 0.68, 8]} />
+          <meshStandardMaterial
+            ref={(material) => (extinguisherMaterialRefs.current[0] = material)}
+            color="#c92c27"
+            roughness={0.48}
+            transparent
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0, 0.71, 0]} castShadow>
+          <cylinderGeometry args={[0.1, 0.1, 0.12, 8]} />
+          <meshStandardMaterial
+            ref={(material) => (extinguisherMaterialRefs.current[1] = material)}
+            color="#1d2228"
+            roughness={0.4}
+            transparent
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0.16, 0.75, 0]} rotation={[0, 0, -0.6]}>
+          <cylinderGeometry args={[0.025, 0.025, 0.44, 6]} />
+          <meshStandardMaterial
+            ref={(material) => (extinguisherMaterialRefs.current[2] = material)}
+            color="#20252a"
+            transparent
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0.34, 0.64, 0]} rotation={[0, 0, -1.18]}>
+          <cylinderGeometry args={[0.035, 0.035, 0.35, 6]} />
+          <meshStandardMaterial
+            ref={(material) => (extinguisherMaterialRefs.current[3] = material)}
+            color="#20252a"
+            transparent
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+      {Array.from({ length: 17 }, (_, index) => (
+        <mesh key={`foam-${index}`} ref={(element) => (foamRefs.current[index] = element)} visible={false}>
+          <sphereGeometry args={[1, 6, 6]} />
+          <meshStandardMaterial color="#f5f2dc" transparent opacity={0.88} depthWrite={false} />
         </mesh>
       ))}
     </group>
