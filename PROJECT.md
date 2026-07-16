@@ -43,12 +43,22 @@ Interactive 3D cartoon risk-education game/simulation. Summon disasters on a hou
 - **Object-click triggering** *(to build):* clicking a scene object fires its disaster — roof → hail, stove → fire, backyard tree → fall; hover highlight tells the player what's clickable
 - **Hail:** 250 instanced hailstones fall over the yard for 4s; roof darkens/dents after
 - **Fire:** flickering flame cones + orange light + rising smoke at kitchen corner; walls char after
-- **Fallen tree:** backyard oak topples onto the roofline; stays fallen until reset
-- **Camera shake** during any active disaster
+- **Fallen tree:** backyard oak winds up, crashes into the roof, removes a roof section, throws bright shingles/debris, and leaves a ceiling panel dangling inside; stays fallen until reset
+- **Camera shake:** subtle during general disaster activity, strong and contact-timed for major impacts
 - **Prevention toggles** (toolbar): if toggled *before* triggering, damage is visually reduced and the panel shows the reduced cost + "Prevention paid off!" badge
 - **Risk score** (top right): 100 minus per-disaster weight for each un-prevented risk; color-coded green/amber/red
 - **Info panel** (right side): slides in after each disaster with education content
 - **Reset house:** clears all damage, keeps prevention toggles
+
+## Visual direction
+
+- **Playful low-poly cartoon:** chunky silhouettes, faceted geometry, warm colors, soft atmospheric depth, and readable forms take priority over realism.
+- **Dramatic, choreographed disasters:** each event should have anticipation, a fast impact, a brief overshoot or settling motion, particles/debris, lighting or material response, and a persistent aftermath. Effects should feel spectacular in a short demo while remaining deterministic—use authored animation rather than physics.
+- **Impact-timed feedback:** synchronize the strongest camera shake, debris burst, damage swap, and sound cue to the moment of contact. Avoid continuous maximum-intensity shake.
+- **Damage readable at a glance:** prefer localized silhouette and geometry changes—missing/crushed sections, bright broken edges, char, dents, interior debris—over a subtle whole-object color tint.
+- **Cutaway stays polished:** exterior roof/wall damage fades with its parent structure and stops casting shadows or intercepting clicks when hidden. Interior aftermath, such as a dangling ceiling piece, remains visible to reward opening the dollhouse view.
+- **Prevention changes the spectacle:** mitigated outcomes should visibly preserve more of the house, use fewer particles, and leave smaller damage—not merely show a lower number in the panel.
+- **Demo reliability first:** effects reset cleanly, remain legible from the default camera, and produce the same satisfying beat every time.
 
 ## Architecture / conventions
 

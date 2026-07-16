@@ -20,7 +20,9 @@ const EFFECTS = {
 
 export default function DisasterEffects() {
   const triggered = useGameStore((s) => s.triggered)
+  const damage = useGameStore((s) => s.damage)
   const impacts = useGameStore((s) => s.impacts)
+  const treeIsImpacting = !!triggered.tree && !damage.tree
 
   return (
     <>
@@ -28,7 +30,9 @@ export default function DisasterEffects() {
         const Effect = EFFECTS[id]
         return Effect ? <Effect key={id} /> : null
       })}
-      {impacts > 0 && <CameraShake intensity={0.4} />}
+      {/* The tree owns a stronger, contact-timed shake in BackyardTree. Avoid
+          mounting two camera controllers during its fall. */}
+      {impacts > 0 && !treeIsImpacting && <CameraShake intensity={0.4} />}
     </>
   )
 }

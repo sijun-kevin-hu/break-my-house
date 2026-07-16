@@ -16,7 +16,7 @@ import { useClickable } from './useClickable'
  * Damage visualization = material swaps (cheap, readable at cartoon scale):
  *  - hail: roof darkens + dents (full) or light scuff (reduced)
  *  - fire: walls char near the kitchen corner
- *  - tree: roof section crushed (handled visually by FallenTree effect + roof tint)
+ *  - tree: roof section removed, bright broken shingles, dangling ceiling panel
  */
 const COLORS = {
   wall: '#f5e6c8',
@@ -45,6 +45,33 @@ const ROOF_RUN = W / 2 + ROOF_EAVE
 const ROOF_LENGTH = D + ROOF_EAVE * 2
 const ROOF_SLOPE = Math.atan(ROOF_RISE / ROOF_RUN)
 const ROOF_PANEL_LENGTH = Math.hypot(ROOF_RUN, ROOF_RISE)
+
+// The north-west roof panel is built from five flush pieces. The center piece
+// can be hidden after the tree strike, creating an actual opening without
+// changing the silhouette or cutaway behavior of the rest of the roof.
+const ROOF_HALF_X = ROOF_PANEL_LENGTH / 2
+const ROOF_HALF_Z = ROOF_LENGTH / 2
+const TREE_HOLE = { xMin: -0.15, xMax: 1.15, zMin: -1.92, zMax: -0.42 }
+const roofSegment = (id, xMin, xMax, zMin, zMax, impact = false) => ({
+  id,
+  impact,
+  position: [(xMin + xMax) / 2, 0, (zMin + zMax) / 2],
+  size: [xMax - xMin, 0.18, zMax - zMin],
+})
+const LEFT_ROOF_SEGMENTS = [
+  roofSegment('outer', -ROOF_HALF_X, TREE_HOLE.xMin, -ROOF_HALF_Z, ROOF_HALF_Z),
+  roofSegment('ridge', TREE_HOLE.xMax, ROOF_HALF_X, -ROOF_HALF_Z, ROOF_HALF_Z),
+  roofSegment('north', TREE_HOLE.xMin, TREE_HOLE.xMax, -ROOF_HALF_Z, TREE_HOLE.zMin),
+  roofSegment('south', TREE_HOLE.xMin, TREE_HOLE.xMax, TREE_HOLE.zMax, ROOF_HALF_Z),
+  roofSegment(
+    'impact',
+    TREE_HOLE.xMin,
+    TREE_HOLE.xMax,
+    TREE_HOLE.zMin,
+    TREE_HOLE.zMax,
+    true
+  ),
+]
 
 // Each wall: outward-facing normal + placement. We fade a wall when its outward
 // normal points toward the camera (i.e. it's on the near side of the room).
@@ -116,7 +143,7 @@ function Roof({ color, wallColor }) {
       setTreeImpactVisible(false)
       return undefined
     }
-    const timer = setTimeout(() => setTreeImpactVisible(true), 520)
+    const timer = setTimeout(() => setTreeImpactVisible(true), 850)
     return () => clearTimeout(timer)
   }, [treeTriggered])
 
@@ -125,7 +152,7 @@ function Roof({ color, wallColor }) {
     const gableMats = gableMatRefs.current
     const chimneyMat = chimneyMatRef.current
     if (
-      roofMats.length !== 2 ||
+      roofMats.length !== LEFT_ROOF_SEGMENTS.length + 1 ||
       roofMats.some((mat) => !mat) ||
       gableMats.length !== 2 ||
       gableMats.some((mat) => !mat) ||
@@ -185,29 +212,55 @@ function Roof({ color, wallColor }) {
 
   return (
     <group>
-      {/* Two pitched panels make a proper gable: their outer edges extend past
-          all four walls, so no wall can protrude through the roofline. */}
-      {[-1, 1].map((side, index) => (
-        <mesh
-          key={side}
-          ref={(el) => (roofRefs.current[index] = el)}
-          position={[side * ROOF_RUN / 2, H + ROOF_RISE / 2 + 0.03, 0]}
-          rotation={[0, 0, -side * ROOF_SLOPE]}
-          castShadow
-          {...bind}
-        >
-          <boxGeometry args={[ROOF_PANEL_LENGTH, 0.18, ROOF_LENGTH]} />
-          <meshStandardMaterial
-            ref={(el) => (roofMatRefs.current[index] = el)}
-            color={color}
-            emissive="#ffcaa0"
-            emissiveIntensity={0}
-            flatShading
-            transparent
-            opacity={1}
-          />
-        </mesh>
-      ))}
+      {/* The left pitch is segmented around the tree's impact zone. Before the
+          strike the pieces read as one continuous roof; after impact the center
+          piece disappears and exposes a real opening. */}
+      <group
+        position={[-ROOF_RUN / 2, H + ROOF_RISE / 2 + 0.03, 0]}
+        rotation={[0, 0, ROOF_SLOPE]}
+      >
+        {LEFT_ROOF_SEGMENTS.map((segment, index) => (
+          <mesh
+            key={segment.id}
+            ref={(el) => (roofRefs.current[index] = el)}
+            position={segment.position}
+            visible={!segment.impact || !treeImpactVisible || treePrevented}
+            castShadow
+            {...bind}
+          >
+            <boxGeometry args={segment.size} />
+            <meshStandardMaterial
+              ref={(el) => (roofMatRefs.current[index] = el)}
+              color={color}
+              emissive="#ffcaa0"
+              emissiveIntensity={0}
+              flatShading
+              transparent
+              opacity={1}
+            />
+          </mesh>
+        ))}
+      </group>
+
+      {/* The opposite pitch remains a single uninterrupted panel. */}
+      <mesh
+        ref={(el) => (roofRefs.current[LEFT_ROOF_SEGMENTS.length] = el)}
+        position={[ROOF_RUN / 2, H + ROOF_RISE / 2 + 0.03, 0]}
+        rotation={[0, 0, -ROOF_SLOPE]}
+        castShadow
+        {...bind}
+      >
+        <boxGeometry args={[ROOF_PANEL_LENGTH, 0.18, ROOF_LENGTH]} />
+        <meshStandardMaterial
+          ref={(el) => (roofMatRefs.current[LEFT_ROOF_SEGMENTS.length] = el)}
+          color={color}
+          emissive="#ffcaa0"
+          emissiveIntensity={0}
+          flatShading
+          transparent
+          opacity={1}
+        />
+      </mesh>
 
       {/* Filled gable ends visually join the roof to the rectangular walls.
           They fade with the roof so the cutaway behavior stays intact. */}
@@ -247,18 +300,18 @@ function Roof({ color, wallColor }) {
 
       {treeImpactVisible && (
         <group>
-          {/* A dark, crooked replacement patch sells a localized cave-in while
-              leaving the reliable primitive roof mesh intact underneath. */}
+          {/* The full-damage version sits below the missing roof segment as a
+              dark cavity. Prevention leaves the panel intact with a small dent. */}
           <mesh
             ref={(el) => (treeDamageMeshRefs.current[0] = el)}
-            position={[-1.12, 4.06, -1.18]}
-            rotation={[0.04, -0.08, ROOF_SLOPE + (treePrevented ? 0.04 : 0.2)]}
+            position={treePrevented ? [-1.12, 4.06, -1.18] : [-1.12, 3.84, -1.18]}
+            rotation={[0.04, -0.08, ROOF_SLOPE + (treePrevented ? 0.04 : 0)]}
             castShadow
           >
-            <boxGeometry args={treePrevented ? [0.72, 0.1, 0.72] : [1.42, 0.14, 1.32]} />
+            <boxGeometry args={treePrevented ? [0.72, 0.1, 0.72] : [1.18, 0.05, 1.34]} />
             <meshStandardMaterial
               ref={(el) => (treeDamageMatRefs.current[0] = el)}
-              color={treePrevented ? '#9c4437' : '#392d2a'}
+              color={treePrevented ? '#9c4437' : '#17191b'}
               flatShading
               transparent
               opacity={1}
@@ -291,7 +344,9 @@ function Roof({ color, wallColor }) {
                 <boxGeometry args={[0.5, 0.11, 0.42]} />
                 <meshStandardMaterial
                   ref={(el) => (treeDamageMatRefs.current[2] = el)}
-                  color="#6f342c"
+                  color="#f06a45"
+                  emissive="#7d1d12"
+                  emissiveIntensity={0.22}
                   flatShading
                   transparent
                   opacity={1}
@@ -306,12 +361,86 @@ function Roof({ color, wallColor }) {
                 <boxGeometry args={[0.42, 0.1, 0.58]} />
                 <meshStandardMaterial
                   ref={(el) => (treeDamageMatRefs.current[3] = el)}
-                  color="#7d382e"
+                  color="#df5138"
+                  emissive="#71180f"
+                  emissiveIntensity={0.22}
                   flatShading
                   transparent
                   opacity={1}
                 />
               </mesh>
+              <mesh
+                ref={(el) => (treeDamageMeshRefs.current[4] = el)}
+                position={[-1.72, 3.84, -1.38]}
+                rotation={[-0.1, 0.42, ROOF_SLOPE + 0.58]}
+                castShadow
+              >
+                <boxGeometry args={[0.46, 0.11, 0.66]} />
+                <meshStandardMaterial
+                  ref={(el) => (treeDamageMatRefs.current[4] = el)}
+                  color="#f47a4f"
+                  emissive="#7d1d12"
+                  emissiveIntensity={0.2}
+                  flatShading
+                  transparent
+                  opacity={1}
+                />
+              </mesh>
+              <mesh
+                ref={(el) => (treeDamageMeshRefs.current[5] = el)}
+                position={[-0.48, 4.34, -0.82]}
+                rotation={[0.16, -0.28, ROOF_SLOPE - 0.4]}
+                castShadow
+              >
+                <boxGeometry args={[0.38, 0.1, 0.54]} />
+                <meshStandardMaterial
+                  ref={(el) => (treeDamageMatRefs.current[5] = el)}
+                  color="#e95b3f"
+                  emissive="#761a11"
+                  emissiveIntensity={0.2}
+                  flatShading
+                  transparent
+                  opacity={1}
+                />
+              </mesh>
+
+              {/* This interior damage intentionally does not fade with the roof:
+                  it becomes the focal point when the cutaway opens. */}
+              <group>
+                <mesh
+                  position={[-0.76, 3.48, -1.12]}
+                  rotation={[0.08, 0, 0.18]}
+                  castShadow
+                  raycast={NOOP_RAYCAST}
+                >
+                  <boxGeometry args={[0.07, 0.94, 0.07]} />
+                  <meshStandardMaterial color="#9a6b43" flatShading />
+                </mesh>
+                <mesh
+                  position={[-1.35, 3.43, -1.02]}
+                  rotation={[-0.1, 0, -0.25]}
+                  castShadow
+                  raycast={NOOP_RAYCAST}
+                >
+                  <boxGeometry args={[0.06, 0.82, 0.06]} />
+                  <meshStandardMaterial color="#8a5a39" flatShading />
+                </mesh>
+                <group position={[-1.05, 2.98, -1.08]} rotation={[0.3, 0.08, -0.24]}>
+                  <mesh castShadow raycast={NOOP_RAYCAST}>
+                    <boxGeometry args={[1.18, 0.09, 0.86]} />
+                    <meshStandardMaterial color="#e9dcc6" flatShading />
+                  </mesh>
+                  <mesh
+                    position={[0.38, -0.07, 0.22]}
+                    rotation={[0.08, 0.25, -0.12]}
+                    castShadow
+                    raycast={NOOP_RAYCAST}
+                  >
+                    <boxGeometry args={[0.48, 0.07, 0.42]} />
+                    <meshStandardMaterial color="#c8b69d" flatShading />
+                  </mesh>
+                </group>
+              </group>
             </>
           )}
         </group>
@@ -324,9 +453,9 @@ export default function House() {
   const damage = useGameStore((s) => s.damage)
 
   const roofColor =
-    damage.hail === 'full' || damage.tree === 'full'
+    damage.hail === 'full'
       ? COLORS.roofDented
-      : damage.hail === 'reduced' || damage.tree === 'reduced'
+      : damage.hail === 'reduced'
         ? COLORS.roofScuffed
         : COLORS.roof
 

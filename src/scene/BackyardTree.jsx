@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { CameraShake } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { useClickable } from './useClickable'
@@ -9,6 +10,7 @@ import { useClickable } from './useClickable'
 // visually passing through the rooms.
 const FALL_ANGLE = 0.72
 const IMPACT_ANGLE = FALL_ANGLE * 0.72
+const FALL_DURATION = 1.25
 const CANOPY_EMISSIVE = '#8fe08f'
 
 function ImpactBurst({ reduced }) {
@@ -62,7 +64,12 @@ function ImpactBurst({ reduced }) {
       {shards.map((_, i) => (
         <mesh key={`shard-${i}`} ref={(el) => (shardRefs.current[i] = el)} castShadow>
           <boxGeometry args={[0.08 + (i % 2) * 0.05, 0.06, 0.24 + (i % 3) * 0.06]} />
-          <meshStandardMaterial color={i % 3 === 0 ? '#d9a56f' : '#823e32'} flatShading />
+          <meshStandardMaterial
+            color={i % 3 === 0 ? '#d9a56f' : i % 2 === 0 ? '#f06a45' : '#d94832'}
+            emissive={i % 3 === 0 ? '#3f2415' : '#71180f'}
+            emissiveIntensity={0.16}
+            flatShading
+          />
         </mesh>
       ))}
       {Array.from({ length: reduced ? 2 : 4 }, (_, i) => (
@@ -96,18 +103,53 @@ export default function BackyardTree() {
 
   const pivotRef = useRef()
   const canopyMats = useRef([])
+  const fallTime = useRef(0)
   const [impacted, setImpacted] = useState(false)
+  const [impactShake, setImpactShake] = useState(false)
 
   useEffect(() => {
-    if (!triggered) setImpacted(false)
+    if (!triggered) {
+      fallTime.current = 0
+      setImpacted(false)
+      setImpactShake(false)
+    }
   }, [triggered])
+
+  useEffect(() => {
+    if (!impactShake) return undefined
+    const timer = setTimeout(() => setImpactShake(false), 850)
+    return () => clearTimeout(timer)
+  }, [impactShake])
 
   useFrame((state, delta) => {
     const pivot = pivotRef.current
     if (pivot) {
-      const targetRot = triggered ? FALL_ANGLE : 0
-      pivot.rotation.x = THREE.MathUtils.damp(pivot.rotation.x, targetRot, 2.8, delta)
-      if (triggered && !impacted && pivot.rotation.x >= IMPACT_ANGLE) setImpacted(true)
+      if (triggered) {
+        fallTime.current = Math.min(FALL_DURATION, fallTime.current + delta)
+        const t = fallTime.current / FALL_DURATION
+
+        if (t < 0.18) {
+          // A short lean away from the house telegraphs the direction of the hit.
+          const windUp = Math.sin((t / 0.18) * Math.PI * 0.5)
+          pivot.rotation.x = -0.055 * windUp
+        } else if (t < 0.8) {
+          // Accelerate hard through the fall and overshoot on contact.
+          const fall = (t - 0.18) / 0.62
+          pivot.rotation.x = -0.055 + (FALL_ANGLE + 0.145) * Math.pow(fall, 2.3)
+        } else {
+          // Two quick settling bounces make the crown feel heavy on the roof.
+          const settle = (t - 0.8) / 0.2
+          pivot.rotation.x =
+            FALL_ANGLE + Math.cos(settle * Math.PI * 3) * 0.09 * (1 - settle)
+        }
+
+        if (!impacted && pivot.rotation.x >= IMPACT_ANGLE) {
+          setImpacted(true)
+          setImpactShake(true)
+        }
+      } else {
+        pivot.rotation.x = THREE.MathUtils.damp(pivot.rotation.x, 0, 5, delta)
+      }
       // Gentle "notice me" sway while standing and un-triggered.
       const sway = triggered ? 0 : Math.sin(state.clock.elapsedTime * 1.5) * 0.02
       pivot.rotation.z = THREE.MathUtils.lerp(pivot.rotation.z, sway, delta * 3)
@@ -149,6 +191,19 @@ export default function BackyardTree() {
         {canopy(2, [-0.6, 3.3, -0.3], 0.7, '#37833e')}
       </group>
       {impacted && <ImpactBurst reduced={prevented} />}
+      {impactShake && (
+        <CameraShake
+          intensity={1.35}
+          decay
+          decayRate={1.25}
+          maxYaw={0.14}
+          maxPitch={0.11}
+          maxRoll={0.09}
+          yawFrequency={18}
+          pitchFrequency={22}
+          rollFrequency={16}
+        />
+      )}
     </>
   )
 }
