@@ -52,7 +52,7 @@ body,
 
 .intro-reopen-button {
   position: absolute;
-  top: 70px;
+  top: 82px;
   left: 20px;
   display: inline-flex;
   gap: 6px;
@@ -129,6 +129,14 @@ body,
 }
 
 .toolbar-hint strong { color: #c0392b; }
+
+.toolbar-hint-complete {
+  color: #68776f;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.toolbar-hint-complete strong { color: inherit; }
 
 .prevention-list {
   display: flex;

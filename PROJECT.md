@@ -27,18 +27,19 @@ technical convention or invariant changes.
 | Hailstorm | Partial | Dense deterministic hail now strikes both roof sections, with the wing using the same staged dent, color-damage, prevention, and persistence logic as the core roof. Settled hail and low-poly drifts surround the complete house footprint. Production build passes; the expanded animation and pileup still need manual visual verification. |
 | Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and the east wall; it leaves a dense, staged trail of overlapping floor char. The aftermath now uses shallow raised burn geometry whose lower edge clears both the slab and rug, while prevention keeps the spectacle and damage contained. Production build passes; the expanded char path still needs manual visual verification. |
 | Bathroom water loss | Partial | Clicking the vanity shutoff immediately starts a deterministic under-sink burst aimed into the bathroom, with no trigger-time geometry mount. Three anchored core jets ease rapidly to full reach while 64 arcing droplets launch in a tight stagger. A dark, opaque pool starts growing in the open aisle on the first frame, followed by three overlapping pools with authored ease-out timing and a subtle settling ripple. Their raised bodies, bright cyan perimeter rings, and pale highlights keep all four volumes legible against the teal floor without transparent-surface sorting. Spray and matching seeded water audio persist until reset. A visible leak sensor + automatic shutoff limits the spray and sound to 1.35 seconds, reduces their density, and keeps one clearly exposed puddle contained. Production build passes; the smoother effect needs manual visual/audio verification. |
+| Electrical arc fire | Partial | The primary-bedroom power strip visibly carries five occupied sockets feeding the TV, console, phone charger, floor lamp, and portable heater. Clicking only the strip starts deterministic blue-white arcs, then sequentially pops the connected devices, races into the wall circuit, and ignites a bounded cord-path bedroom fire with sparks, multi-source smoke, device shutdown, melted debris, and a broad persistent scorch trail. AFCI breakers + an electrical inspection add a visible protected breaker, trip the circuit at 0.48 seconds, shorten the procedural audio, and stop the event at a small singe before it spreads. Production build passes; strip discoverability, cord routing, effect placement, audio, and full/protected timing need manual browser verification. |
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
-| Object-triggered disasters | Done | Roof → hail, stove → fire, bathroom supply line → water loss, tree/stump → tree risk. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. |
+| Object-triggered disasters | Partial | Roof → hail, stove → fire, bathroom supply line → water loss, overloaded bedroom power strip → electrical arc fire, tree/stump → tree risk. The toolbar lists every target after one “Click on the…” instruction and strikes through the one that has fired; reset restores every target name. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. The new power-strip path is build-verified but still needs manual interaction verification. |
 | Discoverable interactions | Done | Live triggers use hover highlights, idle affordance, a pointer cursor, and a non-intercepting 3D pulse-ring halo; fired triggers stop reading as interactive. |
 | Insurance information panel | Partial | Appears shortly after the event's key beat; shows a financial snapshot: uninsured out-of-pocket exposure, potential insurer payment, and the $1,000 demo deductible. Reduced and eliminated outcomes also quantify estimated damage avoided against the unprotected baseline. It notes that policy terms, limits, and wind/hail deductibles may differ. The panel becomes a viewport-bounded scroller with a sticky acknowledgement action on narrow or short windows. Production build passes; the revised comparison layout needs manual visual verification. |
 | Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
 | Reset for repeat demos | Done | Clears triggered disasters, damage, and stale disaster-hover indicators while keeping prevention selections for easy comparison. |
-| Sound effects | Partial | Hail, fire, fire-loop, and tree assets are connected, and water loss uses a seeded procedural burst. The referenced success cue is still absent. |
-| First-load introduction | Partial | An opening risk-lab panel explains the learning goal and identifies the roof, stove, bathroom pipe, tree, camera, prevention, and reset interactions before the player begins. A persistent “How to play” control reopens it without changing the simulation. Production build passes; manual visual smoke testing remains. |
+| Sound effects | Partial | Hail, fire, fire-loop, and tree assets are connected; water loss and the electrical arc use seeded procedural effects with prevention-specific durations. The referenced success cue is still absent. |
+| First-load introduction | Partial | An opening risk-lab panel explains the learning goal and identifies the roof, stove, bathroom pipe, overloaded power strip, tree, camera, prevention, and reset interactions before the player begins. A persistent “How to play” control sits clearly below the title subtitle and reopens it without changing the simulation. Production build passes; manual visual smoke testing remains. |
 | Title/intro polish | Partial | The first-load experience is now purposeful; a final at-screen-size visual pass remains. |
 
 **Explicitly out of scope:** real-world physics, LLM NPCs, walking character,
-further room-specific disasters beyond the bathroom water loss, and mobile layout.
+additional room-specific disasters beyond the water and electrical losses, and mobile layout.
 
 ## Current experience
 
@@ -52,7 +53,7 @@ further room-specific disasters beyond the bathroom water loss, and mobile layou
   Exterior walls use a smooth whole-house cutaway; interior partitions and doors
   add two-sided angle fading across pitch and zoom. Both roof sections fade separately,
   with soft lighting, shadows, sky/fog, and a constrained camera.
-- Roof, stove, bathroom supply line, and backyard tree are the disaster triggers. Controls are
+- Roof, stove, bathroom supply line, overloaded bedroom power strip, and backyard tree are the disaster triggers. Controls are
   discoverable and stop responding once their event has fired.
 - Hail resolves roof dents and darkening in a smooth staggered sequence, then
   leaves damaged shingle edges, a growing ring of settled ice, and visible
@@ -72,6 +73,13 @@ further room-specific disasters beyond the bathroom water loss, and mobile layou
   bodies, bright cyan rims, and pale highlights contrast the teal flooring. Damp
   drywall remains behind the sink. A visible sensor and automatic shutoff
   contain it to a short spray and a small puddle.
+- The primary-bedroom power strip is visibly overloaded by a connected TV,
+  game console, phone charger, floor lamp, and portable heater. Its arc-fault
+  sequence flashes and crackles through the cords, sequentially pops the
+  connected devices, races into the wall circuit, and ignites a bounded bedroom
+  fire with a broad strip-to-device scorch trail. Enabling AFCI breakers adds a
+  protected panel that trips almost immediately, sharply reducing the
+  spectacle, procedural audio, damage, and panel cost.
 - The fallen tree has an anticipatory windup, a contact-timed shake/debris
   burst, persistent roof hole, broken edges, and hanging interior ceiling
   aftermath. Removing the identified hazardous tree creates a stump instead.
@@ -88,6 +96,7 @@ further room-specific disasters beyond the bathroom water loss, and mobile layou
 | Smoke detectors + extinguisher | Kitchen fire | Smaller fire, less spread/scorching, and a lower claim cost. |
 | Leak sensor + automatic shutoff | Bathroom water loss | Shorter spray, a small contained puddle, and a lower claim cost. |
 | Remove hazardous tree | Fallen tree | Replaces the tree with a stump and eliminates that specific strike and claim. |
+| AFCI breakers + electrical inspection | Electrical arc fire | Trips the overloaded bedroom circuit after a brief spark, limits scorch and connected-device damage, and lowers the claim cost. |
 
 Prevention choices persist across reset so a presenter can show an unprotected
 result, reset, enable one prevention, and repeat the same event. A prevention
@@ -97,13 +106,18 @@ the fact.
 ## Current priorities / known gaps
 
 1. Supply and test the missing `success.mp3` prevention cue.
-2. Manually verify the enlarged 3BR/1BA wing at the intended demo screen size,
+2. Manually verify the overloaded primary-bedroom power strip at the intended
+   demo screen size: all five occupied sockets and their device cords, clear
+   hover/click affordance on the strip only, unobstructed room circulation,
+   full device-to-device arc/flame/scorch/debris sequence, protected breaker trip, device shutdown,
+   procedural audio, result timing, reset, and comparison costs.
+3. Manually verify the enlarged 3BR/1BA wing at the intended demo screen size,
    including the deeper bedroom proportions, all four room doors and their swing clearances, the unobstructed hall,
    single-bath layout, partition/perimeter joins, pop-free exterior and interior
    wall/roof fades at all angles and pitches, lower-gable seam/alignment, camera framing, and
    bathroom-pipe access.
-3. Do a final visual pass on the title and UI at the intended demo screen size.
-4. Run the manual demo flow below on the target browser before presenting.
+4. Do a final visual pass on the title and UI at the intended demo screen size.
+5. Run the manual demo flow below on the target browser before presenting.
 
 ## Architecture
 
@@ -118,7 +132,7 @@ src/
 │   ├── BackyardTree.jsx        # Standing/clickable tree and its fall
 │   ├── InteriorModel.jsx       # Reusable GLB loading and burn variants
 │   └── useClickable.js         # Shared pointer/hover behavior
-├── disasters/                  # Hail, fire, and water-loss animation components
+├── disasters/                  # Hail, fire, water-loss, and electrical animation components
 ├── hooks/useGameAudio.js       # Trigger/prevention audio wiring
 └── ui/                         # Toolbar, risk score, and information panel
 ```
@@ -140,11 +154,12 @@ src/
 
 - [x] `npm run build` passes (last verified against the current working tree).
 - [ ] On a fresh load, review the risk-lab introduction; start it and confirm the
-  roof, stove, bathroom pipe, tree, camera, prevention, and reset controls match the guidance;
+  roof, stove, bathroom pipe, power strip, tree, camera, prevention, and reset controls match the guidance;
   then reopen it with “How to play” without changing the simulation.
-- [ ] With sound enabled, click roof, stove, bathroom pipe, and tree and confirm
-  one correct sound each. The prevention success cue remains blocked by the
-  missing audio asset listed above.
+- [ ] With sound enabled, click roof, stove, bathroom pipe, power strip, and tree
+  and confirm one correct sound each. Confirm the protected electrical crackle
+  ends with the breaker trip while the full burst continues through its authored
+  sequence. The prevention success cue remains blocked by the missing audio asset listed above.
 - [ ] Click roof, observe hail and damage, then reset and repeat with
   impact-resistant roofing; verify both visual damage and panel cost shrink.
 - [ ] For each disaster outcome, verify the result panel clearly distinguishes
@@ -154,7 +169,7 @@ src/
   narrow or short viewport, confirm the panel scrolls internally and “Got it”
   remains reachable.
 - [ ] Trigger any disaster and, before pressing “Got it,” verify the other
-  disaster objects cannot be selected but mouse and keyboard camera movement still work; then acknowledge the panel and verify another unfired object can trigger.
+  disaster objects cannot be selected but mouse and keyboard camera movement still work; confirm only its matching toolbar target name is struck through, then acknowledge the panel and verify another unfired object can trigger. Reset and confirm every target name is restored.
 - [ ] Click stove, repeat with smoke detectors + extinguisher; verify fire
   spread and panel cost shrink; confirm the raised kitchen-floor char remains
   visible above the slab and rug from low, middle, and overhead camera pitches.
@@ -170,6 +185,15 @@ src/
   remain visible against the teal floor after the panel appears. Confirm the protected spray duration,
   density, sound, puddle size, damp-wall aftermath, panel cost, and estimated
   avoided damage all shrink.
+- [ ] Click the overloaded primary-bedroom power strip, then reset and repeat
+  with AFCI breakers + electrical inspection. Confirm five visibly occupied
+  sockets feed the TV, console, phone charger, floor lamp, and portable heater;
+  the strip alone owns the pointer/halo/click; the full event produces staged
+  blue-white arcs, sequential device pops, wall-circuit tracking, bounded
+  cord-path flames, multi-source smoke, connected-device shutdown, melted
+  debris, and a broad persistent floor/wall scorch trail; and the protected breaker
+  trips at the short beat with only a small singe, shorter audio, lower panel
+  cost, and the correct estimated damage avoided.
 - [ ] Inspect the furnished rooms from the default and overhead angles: verify
   the bathroom vanity sits against the south wall with clear toilet access, its
   compact countertop handle, rectangular basin, and rectangular below-sink shutoff
@@ -177,14 +201,15 @@ src/
   mirror/storage/towels/mat/hamper read clearly, the bathtub is clear of
   fixtures, each secondary-bedroom bed and dresser
   sits aligned against its respective wall, the primary bed faces its wall-centered
-  dresser and TV without blocking the door, the sink remains close to the
+  dresser and TV without the connected electrical setup blocking the door or
+  circulation, the sink remains close to the
   stove, and the taller living-room lamp and plant remain within the room
   silhouette.
 - [ ] Click tree, repeat after removing the hazardous tree; verify stump,
   “Risk eliminated!”, and $0 cost.
 - [ ] Orbit above and around the house; verify the cutaway keeps all three
   bedrooms and the shared bathroom readable, the lower gable fully covers the wing when
-  closed, and the stove and bathroom pipe remain clickable when the roof fades.
+  closed, and the stove, bathroom pipe, and bedroom power strip remain clickable when the roof fades.
 - [ ] Orbit slowly across every cardinal and diagonal angle at low, middle, and
   overhead pitches; verify core and wing walls fade smoothly together without
   popping, flickering, phantom shadows, or intercepting clicks while transparent.
@@ -216,7 +241,7 @@ npm run build
 Node 18+. Stack: Vite, React 18, @react-three/fiber, @react-three/drei,
 Three.js, and Zustand.
 
-## Demo script (2–3 min)
+## Demo script (3–4 min)
 
 1. Orbit the idle house once and call out the roomy 3BR/1BA cutaway interior.
 2. Click the roof, watch hail strike, then explain the coverage and cost panel.
@@ -226,7 +251,9 @@ Three.js, and Zustand.
    strike and claim are eliminated.
 5. Reset and click the bathroom supply line; repeat with the shutoff to show a
    common interior loss beyond fire.
-6. Reset and click the stove and tree for the two most dramatic damage beats.
-7. Point to the risk score and close with customers, new agents, and community
+6. Reset and click the overloaded power strip; repeat with AFCI protection to
+   show the breaker trip and lower connected-device damage.
+7. Reset and click the stove and tree for the two most dramatic damage beats.
+8. Point to the risk score and close with customers, new agents, and community
    events as the intended audiences.
-8. End on Reset house for the next walk-up demo.
+9. End on Reset house for the next walk-up demo.

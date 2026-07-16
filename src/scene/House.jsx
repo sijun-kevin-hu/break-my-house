@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
@@ -18,6 +18,7 @@ import InteriorModel from './InteriorModel'
  * Damage visualization = material swaps (cheap, readable at cartoon scale):
  *  - hail: roof darkens + dents (full) or light scuff (reduced)
  *  - fire: walls char near the kitchen corner
+ *  - electrical: the overloaded bedroom strip and connected devices char or trip
  *  - tree: roof section removed, bright broken shingles, dangling ceiling panel
  */
 const COLORS = {
@@ -1081,6 +1082,313 @@ function WaterSupplyTarget() {
   )
 }
 
+const STRIP_BASE_COLOR = new THREE.Color('#eee7d6')
+const STRIP_CHAR_COLOR = new THREE.Color('#171412')
+
+/** Curved, low-poly cable with fixed control points so the overloaded setup reads clearly. */
+function PowerCord({ points, color = '#26262b', radius = 0.022 }) {
+  const curve = useMemo(
+    () => new THREE.CatmullRomCurve3(points.map((point) => new THREE.Vector3(...point))),
+    [points]
+  )
+
+  return (
+    <mesh castShadow raycast={NOOP_RAYCAST}>
+      <tubeGeometry args={[curve, 18, radius, 6, false]} />
+      <meshStandardMaterial color={color} roughness={0.88} flatShading />
+    </mesh>
+  )
+}
+
+/**
+ * The fifth physical risk target: five occupied sockets feed a TV, console,
+ * charger, lamp, and space heater. Only the strip owns the click handlers.
+ */
+function PrimaryBedroomElectricalSetup() {
+  const triggered = useGameStore((s) => !!s.triggered.electrical)
+  const protectedByPrevention = useGameStore((s) => !!s.preventions.electrical)
+  const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
+  const trigger = useGameStore((s) => s.triggerDisaster)
+  const { hovered, bind } = useClickable(
+    () => trigger('electrical'),
+    triggered || acknowledgementRequired
+  )
+  const stripMatRef = useRef()
+  const stripStatusRef = useRef()
+  const tvScreenRef = useRef()
+  const consoleLightRef = useRef()
+  const chargerLightRef = useRef()
+  const lampBulbRef = useRef()
+  const heaterCoilRef = useRef()
+  const ageRef = useRef(0)
+
+  useFrame((state, delta) => {
+    ageRef.current = triggered ? ageRef.current + Math.min(delta, 0.05) : 0
+    const age = ageRef.current
+    const tripTime = protectedByPrevention ? 0.48 : 1.12
+    const live = !triggered || age < tripTime
+    const flicker = triggered && live
+      ? Math.max(0.04, 0.48 + Math.sin(age * 72) * 0.42 + Math.sin(age * 31) * 0.18)
+      : 1
+    const charProgress = triggered
+      ? THREE.MathUtils.smootherstep((age - 0.42) / 0.95, 0, 1) * (protectedByPrevention ? 0.18 : 1)
+      : 0
+
+    if (stripMatRef.current) {
+      stripMatRef.current.color.lerpColors(STRIP_BASE_COLOR, STRIP_CHAR_COLOR, charProgress)
+    }
+    if (stripStatusRef.current) {
+      const idlePulse = hovered ? 1.25 : 0.38 + Math.sin(state.clock.elapsedTime * 3.4) * 0.12
+      stripStatusRef.current.emissiveIntensity = live ? idlePulse * flicker : 0.025
+      stripStatusRef.current.color.set(live ? '#e85b43' : '#2c2826')
+    }
+    if (tvScreenRef.current) {
+      tvScreenRef.current.emissiveIntensity = live ? 0.3 * flicker : 0.01
+      tvScreenRef.current.color.set(live ? '#172a3a' : '#08090a')
+    }
+    if (consoleLightRef.current) {
+      consoleLightRef.current.emissiveIntensity = live ? 0.85 * flicker : 0.01
+    }
+    if (chargerLightRef.current) {
+      chargerLightRef.current.emissiveIntensity = live ? 0.68 * flicker : 0.01
+    }
+    if (lampBulbRef.current) {
+      lampBulbRef.current.emissiveIntensity = live ? 1.4 * flicker : 0.015
+    }
+    if (heaterCoilRef.current) {
+      heaterCoilRef.current.emissiveIntensity = live ? 1.1 * flicker : 0.01
+    }
+  })
+
+  const socketOffsets = [-0.42, -0.21, 0, 0.21, 0.42]
+  const socketColors = ['#353139', '#353139', '#4a3f36', '#353139', '#4a3f36']
+
+  return (
+    <group>
+      {/* Low dresser and the connected bedroom TV. */}
+      <mesh position={[3.22, 0.48, 2.03]} castShadow>
+        <boxGeometry args={[0.42, 0.78, 1.02]} />
+        <meshStandardMaterial color="#55727a" flatShading />
+      </mesh>
+      {[-0.22, 0.22].map((z) => (
+        <mesh key={z} position={[3.44, 0.53, 2.03 + z]} castShadow>
+          <boxGeometry args={[0.028, 0.27, 0.34]} />
+          <meshStandardMaterial color="#759ba1" flatShading />
+        </mesh>
+      ))}
+      <mesh position={[2.88, 1.62, 2.03]} castShadow>
+        <boxGeometry args={[0.07, 0.78, 1.16]} />
+        <meshStandardMaterial color="#493328" flatShading />
+      </mesh>
+      <mesh position={[2.93, 1.62, 2.03]}>
+        <boxGeometry args={[0.025, 0.61, 0.96]} />
+        <meshStandardMaterial
+          ref={tvScreenRef}
+          color="#172a3a"
+          emissive="#22465c"
+          emissiveIntensity={0.3}
+          roughness={0.35}
+        />
+      </mesh>
+
+      {/* A console and phone charger make two of the five visible loads. */}
+      <mesh position={[3.19, 0.91, 1.78]} castShadow>
+        <boxGeometry args={[0.2, 0.11, 0.38]} />
+        <meshStandardMaterial color="#272934" flatShading />
+      </mesh>
+      <mesh position={[3.31, 0.92, 1.78]}>
+        <sphereGeometry args={[0.025, 8, 8]} />
+        <meshStandardMaterial
+          ref={consoleLightRef}
+          color="#70e7bc"
+          emissive="#42cfa0"
+          emissiveIntensity={0.85}
+        />
+      </mesh>
+      <group position={[3.18, 0.94, 2.3]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.18, 0.1, 0.22]} />
+          <meshStandardMaterial color="#d7d2c9" flatShading />
+        </mesh>
+        <mesh position={[0.11, 0.02, 0]}>
+          <sphereGeometry args={[0.022, 8, 8]} />
+          <meshStandardMaterial
+            ref={chargerLightRef}
+            color="#7bd6ff"
+            emissive="#4dbdec"
+            emissiveIntensity={0.68}
+          />
+        </mesh>
+      </group>
+
+      {/* A floor lamp and a high-draw portable heater complete the overloaded circuit. */}
+      <group position={[4.18, 0.13, 3.02]}>
+        <mesh position={[0, 0.03, 0]} castShadow>
+          <cylinderGeometry args={[0.24, 0.28, 0.08, 10]} />
+          <meshStandardMaterial color="#665246" flatShading />
+        </mesh>
+        <mesh position={[0, 0.82, 0]} castShadow>
+          <cylinderGeometry args={[0.035, 0.045, 1.58, 8]} />
+          <meshStandardMaterial color="#594c45" metalness={0.2} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 1.6, 0]} castShadow>
+          <coneGeometry args={[0.34, 0.48, 10, 1, true]} />
+          <meshStandardMaterial color="#e8c88e" side={THREE.DoubleSide} flatShading />
+        </mesh>
+        <mesh position={[0, 1.52, 0]}>
+          <sphereGeometry args={[0.11, 10, 8]} />
+          <meshStandardMaterial
+            ref={lampBulbRef}
+            color="#fff1b2"
+            emissive="#ffd76a"
+            emissiveIntensity={1.4}
+          />
+        </mesh>
+      </group>
+      <group position={[5.18, 0.16, 3.02]}>
+        <mesh position={[0, 0.42, 0]} castShadow>
+          <boxGeometry args={[0.62, 0.82, 0.34]} />
+          <meshStandardMaterial color="#dbd7c9" flatShading />
+        </mesh>
+        {[-0.19, 0, 0.19].map((x) => (
+          <mesh key={x} position={[x, 0.45, 0.19]}>
+            <boxGeometry args={[0.08, 0.52, 0.025]} />
+            <meshStandardMaterial
+              ref={x === 0 ? heaterCoilRef : undefined}
+              color="#8a4b36"
+              emissive="#ef5f36"
+              emissiveIntensity={x === 0 ? 1.1 : 0.45}
+            />
+          </mesh>
+        ))}
+        <mesh position={[-0.2, 0.03, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.055, 0.055, 0.12, 8]} />
+          <meshStandardMaterial color="#3d3c3b" />
+        </mesh>
+        <mesh position={[0.2, 0.03, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.055, 0.055, 0.12, 8]} />
+          <meshStandardMaterial color="#3d3c3b" />
+        </mesh>
+      </group>
+
+      {/* Five visibly occupied sockets converge on the interactive strip. */}
+      <group position={[3.8, 0.25, 2.7]} {...bind}>
+        <mesh castShadow>
+          <boxGeometry args={[0.34, 0.1, 1.08]} />
+          <meshStandardMaterial ref={stripMatRef} color="#eee7d6" flatShading />
+        </mesh>
+        {socketOffsets.map((z, index) => (
+          <group key={z} position={[0, 0.09, z]}>
+            <mesh>
+              <cylinderGeometry args={[0.07, 0.07, 0.025, 10]} />
+              <meshStandardMaterial color="#77736c" flatShading />
+            </mesh>
+            <mesh position={[0, 0.075, 0]} castShadow>
+              <boxGeometry args={[index === 2 || index === 4 ? 0.23 : 0.17, 0.13, 0.15]} />
+              <meshStandardMaterial color={socketColors[index]} flatShading />
+            </mesh>
+          </group>
+        ))}
+        <mesh position={[0, 0.085, -0.53]}>
+          <sphereGeometry args={[0.045, 10, 8]} />
+          <meshStandardMaterial
+            ref={stripStatusRef}
+            color="#e85b43"
+            emissive="#ff5a40"
+            emissiveIntensity={0.38}
+          />
+        </mesh>
+        {hovered && (
+          <DisasterTargetCue position={[0, 0.48, 0]} color="#75dcff" radius={0.55} />
+        )}
+      </group>
+
+      {/* The strip itself plugs into the low wall receptacle. */}
+      <group position={[2.93, 0.43, 2.84]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.045, 0.3, 0.22]} />
+          <meshStandardMaterial color="#f4eee2" flatShading />
+        </mesh>
+        {[-0.055, 0.055].map((z) => (
+          <mesh key={z} position={[0.028, 0, z]}>
+            <boxGeometry args={[0.025, 0.065, 0.025]} />
+            <meshStandardMaterial color="#625f5a" />
+          </mesh>
+        ))}
+        <mesh position={[0.07, 0, 0]} castShadow>
+          <boxGeometry args={[0.12, 0.18, 0.16]} />
+          <meshStandardMaterial color="#3c3938" flatShading />
+        </mesh>
+      </group>
+
+      <PowerCord points={[[3.8, 0.25, 2.12], [3.5, 0.18, 2.08], [3.0, 0.35, 2.78]]} radius={0.026} />
+      <PowerCord points={[[3.8, 0.33, 2.28], [3.47, 0.25, 2.34], [3.04, 1.18, 2.04]]} />
+      <PowerCord points={[[3.8, 0.33, 2.49], [3.52, 0.28, 2.35], [3.3, 0.82, 1.78]]} />
+      <PowerCord points={[[3.8, 0.33, 2.7], [3.55, 0.36, 2.7], [3.29, 0.84, 2.3]]} color="#3f3a43" />
+      <PowerCord points={[[3.8, 0.33, 2.91], [4.08, 0.18, 3.18], [4.18, 0.18, 3.02]]} color="#493a32" />
+      <PowerCord points={[[3.8, 0.33, 3.12], [4.38, 0.18, 3.22], [5.18, 0.2, 3.02]]} radius={0.028} />
+    </group>
+  )
+}
+
+/** Visible AFCI hardware makes the prevention choice legible before and during the trip. */
+function ElectricalBreakerPanel() {
+  const protectedByPrevention = useGameStore((s) => !!s.preventions.electrical)
+  const triggered = useGameStore((s) => !!s.triggered.electrical)
+  const switchRef = useRef()
+  const indicatorRef = useRef()
+  const ageRef = useRef(0)
+
+  useFrame((_, delta) => {
+    ageRef.current = triggered ? ageRef.current + Math.min(delta, 0.05) : 0
+    const tripped = protectedByPrevention && triggered && ageRef.current > 0.48
+    if (switchRef.current) {
+      switchRef.current.rotation.z = THREE.MathUtils.damp(
+        switchRef.current.rotation.z,
+        tripped ? -0.58 : 0.58,
+        15,
+        delta
+      )
+    }
+    if (indicatorRef.current) {
+      indicatorRef.current.color.set(tripped ? '#d45243' : protectedByPrevention ? '#56c976' : '#6d6b67')
+      indicatorRef.current.emissiveIntensity = tripped ? 0.78 : protectedByPrevention ? 0.62 : 0.02
+    }
+  })
+
+  return (
+    <group position={[6.95, 1.45, 0.57]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.86, 1.05, 0.12]} />
+        <meshStandardMaterial color="#aeb2af" metalness={0.25} roughness={0.55} flatShading />
+      </mesh>
+      <mesh position={[0, 0, -0.075]}>
+        <boxGeometry args={[0.68, 0.86, 0.03]} />
+        <meshStandardMaterial color="#d8d9d4" flatShading />
+      </mesh>
+      <mesh ref={switchRef} position={[0, 0.06, -0.12]} rotation={[0, 0, 0.58]} castShadow>
+        <boxGeometry args={[0.13, 0.4, 0.12]} />
+        <meshStandardMaterial color="#34383a" flatShading />
+      </mesh>
+      <mesh position={[0.26, 0.34, -0.12]}>
+        <sphereGeometry args={[0.065, 10, 8]} />
+        <meshStandardMaterial
+          ref={indicatorRef}
+          color={protectedByPrevention ? '#56c976' : '#6d6b67'}
+          emissive="#58df7c"
+          emissiveIntensity={protectedByPrevention ? 0.62 : 0.02}
+        />
+      </mesh>
+      {protectedByPrevention && (
+        <mesh position={[-0.25, 0.32, -0.12]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.11, 0.11, 0.035, 6]} />
+          <meshStandardMaterial color="#45a965" emissive="#63dd82" emissiveIntensity={0.28} flatShading />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
 /** Lower attached gable: visually completes the wing, then clears for cutaway play. */
 function WingRoof() {
   const roofRefs = useRef([])
@@ -1307,33 +1615,8 @@ function BedroomWing() {
           <meshStandardMaterial color={index ? '#735e82' : '#8d6045'} flatShading />
         </mesh>
       ))}
-      <group position={[0, 0, 2.03]}>
-        {/* Low dresser sits directly in front of the primary bed. */}
-        <mesh position={[3.22, 0.48, 0]} castShadow>
-          <boxGeometry args={[0.42, 0.78, 1.02]} />
-          <meshStandardMaterial color="#55727a" flatShading />
-        </mesh>
-        {[-0.22, 0.22].map((z) => (
-          <mesh key={z} position={[3.44, 0.53, z]} castShadow>
-            <boxGeometry args={[0.028, 0.27, 0.34]} />
-            <meshStandardMaterial color="#759ba1" flatShading />
-          </mesh>
-        ))}
-        {/* Wall-mounted screen above the dresser faces the bed without crowding it. */}
-        <mesh position={[2.88, 1.62, 0]} castShadow>
-          <boxGeometry args={[0.07, 0.78, 1.16]} />
-          <meshStandardMaterial color="#493328" flatShading />
-        </mesh>
-        <mesh position={[2.93, 1.62, 0]}>
-          <boxGeometry args={[0.025, 0.61, 0.96]} />
-          <meshStandardMaterial
-            color="#172a3a"
-            emissive="#22465c"
-            emissiveIntensity={0.22}
-            roughness={0.35}
-          />
-        </mesh>
-      </group>
+      <PrimaryBedroomElectricalSetup />
+      <ElectricalBreakerPanel />
 
       <WingRoof />
     </group>

@@ -52,7 +52,7 @@ src/
 ├── data/disasters.js        # Content and prevention configuration
 ├── store/useGameStore.js    # Single game-state store
 ├── scene/                   # House, tree, ground, camera, click affordances
-├── disasters/               # Hail, fire, and water-loss visual effects
+├── disasters/               # Hail, fire, water-loss, and electrical visual effects
 ├── hooks/                   # Audio integration
 ├── ui/                      # HTML overlay only
 └── styles/ui.css
@@ -65,7 +65,8 @@ must be present and clickable before the tree disaster is triggered.
 
 - The only state transition for a disaster is `triggerDisaster(id)`.
 - Trigger objects are: roof → `hail`, stove → `fire`, bathroom supply line →
-  `water`, backyard tree/stump → `tree`. Do not add disaster buttons to the toolbar.
+  `water`, overloaded primary-bedroom power strip → `electrical`, backyard
+  tree/stump → `tree`. Do not add disaster buttons to the toolbar.
 - Starting a disaster locks every scene trigger until its result panel is
   acknowledged with “Got it”; camera controls must remain available during this lock.
 - Snapshot prevention when a disaster starts. A player cannot turn on
@@ -111,6 +112,8 @@ must be present and clickable before the tree disaster is triggered.
   The water-loss burst is a seeded Web Audio effect configured in
   `src/data/disasters.js`; the unprotected sound loops until reset while the
   automatic-shutoff version uses its short authored duration. It has no asset file.
+  The electrical arc is also a seeded Web Audio effect; its protected version
+  ends at the AFCI trip while the full version plays the complete authored burst.
 
 ## Adding a disaster
 

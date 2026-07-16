@@ -1,23 +1,38 @@
+import { Fragment } from 'react'
 import { useGameStore } from '../store/useGameStore'
 import { PREVENTIONS } from '../data/disasters'
 
 /**
  * Bottom toolbar. Disasters are triggered by clicking objects in the scene
- * (roof, stove, bathroom supply line, backyard tree) — NOT from here. This panel only holds the
- * prevention toggles and the reset button.
+ * (roof, stove, bathroom supply line, overloaded power strip, backyard tree) —
+ * NOT from here. This panel only holds prevention toggles and reset.
  */
 export default function Toolbar() {
   const preventions = useGameStore((s) => s.preventions)
   const triggered = useGameStore((s) => s.triggered)
   const togglePrevention = useGameStore((s) => s.togglePrevention)
   const resetHouse = useGameStore((s) => s.resetHouse)
+  const triggerHints = [
+    { id: 'hail', label: 'roof' },
+    { id: 'fire', label: 'stove' },
+    { id: 'water', label: 'bathroom pipe' },
+    { id: 'electrical', label: 'power strip' },
+    { id: 'tree', label: preventions.removeTree ? 'stump' : 'tree' },
+  ]
 
   return (
     <div className="toolbar">
       <p className="toolbar-hint">
-        🖱️ Click the <strong>roof</strong>, <strong>stove</strong>,{' '}
-        <strong>bathroom pipe</strong>, or{' '}
-        <strong>{preventions.removeTree ? 'stump' : 'tree'}</strong> to test a disaster.
+        🖱️ Click on the{' '}
+        {triggerHints.map((hint, index) => (
+          <Fragment key={hint.id}>
+            <span className={triggered[hint.id] ? 'toolbar-hint-complete' : undefined}>
+              <strong>{hint.label}</strong>
+            </span>
+            {index < triggerHints.length - 2 ? ', ' : index === triggerHints.length - 2 ? ', or ' : ''}
+          </Fragment>
+        ))}{' '}
+        to test a disaster.
       </p>
 
       <div className="prevention-list">

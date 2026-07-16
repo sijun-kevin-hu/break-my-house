@@ -92,6 +92,23 @@ export const DISASTERS = {
     preventionTip:
       'A qualified arborist can identify trees that are dead, unstable, or too close to the home. Removing a confirmed hazard eliminates that specific strike risk.',
   },
+  electrical: {
+    id: 'electrical',
+    label: 'Electrical Arc Fire',
+    emoji: '⚡',
+    effectDuration: 3500,
+    resultDelay: 2200,
+    reducedResultDelay: 850,
+    riskWeight: 10,
+    whatHappened:
+      'An overloaded bedroom power strip developed an arc fault, damaging wiring, drywall, and connected electronics.',
+    repairEstimate: 20000,
+    repairEstimateReduced: 1500,
+    prevention: 'AFCI breakers + electrical inspection',
+    preventionIds: ['electrical'],
+    preventionTip:
+      'Arc-fault circuit interrupters can shut down dangerous arcing before it spreads. Have a qualified electrician inspect damaged wiring and overloaded circuits.',
+  },
 }
 
 export const DISASTER_LIST = Object.values(DISASTERS)
@@ -105,4 +122,5 @@ export const PREVENTIONS = [
   { id: 'fire', disasterId: 'fire', emoji: '🔥', label: 'Smoke detectors + extinguisher' },
   { id: 'water', disasterId: 'water', emoji: '💧', label: 'Leak sensor + automatic shutoff' },
   { id: 'removeTree', disasterId: 'tree', emoji: '🪵', label: 'Remove hazardous tree' },
+  { id: 'electrical', disasterId: 'electrical', emoji: '⚡', label: 'AFCI breakers + electrical inspection' },
 ]

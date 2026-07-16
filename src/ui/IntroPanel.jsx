@@ -2,7 +2,7 @@ import { useGameStore } from '../store/useGameStore'
 import { COVERAGE_DEMO } from '../data/disasters'
 
 const controls = [
-  { keys: 'Click', label: 'the roof, stove, bathroom pipe, or tree', detail: 'Trigger a risk event' },
+  { keys: 'Click', label: 'the roof, stove, pipe, power strip, or tree', detail: 'Trigger a risk event' },
   { keys: 'Drag / WASD', label: 'around the house', detail: 'Orbit the camera' },
   { keys: 'Scroll', label: 'or use Q / E', detail: 'Zoom the view' },
   { keys: 'Toggle', label: 'a protection, then reset', detail: 'Compare the outcome' },
