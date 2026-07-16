@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import useSound from "./useSound";
+import useSound from "../useSound";
 import { useGameStore } from "../store/useGameStore";
 
 export default function useGameAudio() {
