@@ -23,6 +23,8 @@ const WING_ROOF_X_MAX = WING_X_MAX + 0.32
 const WING_ROOF_SLOPE = Math.atan(WING_ROOF_RISE / WING_ROOF_RUN)
 const IMPACT_CYCLE = 1.55
 const ACCUMULATION_TIME = 5.6
+const STORM_BUILDUP_TIME = 2.4
+const IMPACT_START_DELAY = 0.65
 
 const roofHeight = (x) =>
   ROOF_BASE + ROOF_RISE * (1 - Math.min(ROOF_RUN, Math.abs(x)) / ROOF_RUN) + 0.16
@@ -273,9 +275,13 @@ export default function Hail() {
   useFrame(({ clock }, delta) => {
     ageRef.current += delta
     const age = ageRef.current
+    const buildup = THREE.MathUtils.smoothstep(age, 0, STORM_BUILDUP_TIME)
+    const activeStoneCount = Math.floor(70 + (COUNT - 70) * buildup)
 
     stones.forEach((stone, i) => {
-      stone.y -= stone.speed * delta
+      const active = i < activeStoneCount
+      const fallSpeed = stone.speed * (0.48 + buildup * 0.52)
+      stone.y -= fallSpeed * delta
       stone.x += stone.drift * delta
       const roofY = roofCollisionHeight(stone.x, stone.z)
       if (stone.y < 0 || stone.y <= roofY) {
@@ -284,19 +290,23 @@ export default function Hail() {
       }
       dummy.position.set(stone.x, stone.y, stone.z)
       dummy.rotation.set(age * stone.speed * 0.3, i, age * stone.speed * 0.18)
-      dummy.scale.set(stone.scale, stone.scale * 1.25, stone.scale)
+      const scale = active ? stone.scale * (0.72 + buildup * 0.28) : 0.001
+      dummy.scale.set(scale, scale * 1.25, scale)
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(i, dummy.matrix)
     })
     meshRef.current.instanceMatrix.needsUpdate = true
 
-    const activeImpactCount = protectedByRoof ? 5 : IMPACTS.length
+    const impactAge = Math.max(0, age - IMPACT_START_DELAY)
+    const impactBuildup = THREE.MathUtils.smoothstep(impactAge, 0, STORM_BUILDUP_TIME - 0.4)
+    const maxImpactCount = protectedByRoof ? 5 : IMPACTS.length
+    const activeImpactCount = Math.floor(maxImpactCount * impactBuildup)
     let strongestFlash = 0
     impactRefs.current.forEach((group, impactIndex) => {
       if (!group) return
       const data = IMPACTS[impactIndex]
-      const phase = (age + data.delay) % IMPACT_CYCLE
-      const active = impactIndex < activeImpactCount && phase < 0.5
+      const phase = (impactAge + data.delay) % IMPACT_CYCLE
+      const active = impactAge > 0 && impactIndex < activeImpactCount && phase < 0.5
       group.visible = active
       if (!active) return
 
@@ -311,7 +321,22 @@ export default function Hail() {
       contact.material.opacity = flash * (protectedByRoof ? 0.48 : 0.95)
       contact.material.emissiveIntensity = 2 + flash * 5
 
-      group.children.slice(1).forEach((chip, chipIndex) => {
+      group.children.slice(1, 4).forEach((bounce, bounceIndex) => {
+        const bounceProgress = phase / 0.5
+        const angle = (bounceIndex / 3) * Math.PI * 2 + impactIndex * 0.7
+        const travel = (0.34 + bounceIndex * 0.09) * bounceProgress
+        const rebound = Math.abs(Math.sin(bounceProgress * Math.PI * 2.15))
+          * (1 - bounceProgress) * (protectedByRoof ? 0.72 : 0.48)
+        bounce.position.set(
+          Math.cos(angle) * travel,
+          0.07 + rebound,
+          Math.sin(angle) * travel
+        )
+        bounce.rotation.set(phase * 13, phase * (9 + bounceIndex), phase * 11)
+        bounce.scale.setScalar(Math.max(0.35, 1 - bounceProgress * 0.5))
+      })
+
+      group.children.slice(4).forEach((chip, chipIndex) => {
         const angle = (chipIndex / 5) * Math.PI * 2 + impactIndex
         const speed = 0.65 + (chipIndex % 3) * 0.24
         const bounceHeight =
@@ -322,7 +347,8 @@ export default function Hail() {
           Math.sin(angle) * speed * phase
         )
         chip.rotation.set(phase * 8, phase * (10 + chipIndex), phase * 6)
-        chip.scale.setScalar(Math.max(0.15, 1 - phase * 1.4))
+        const protectionScale = protectedByRoof ? 0.18 : 1
+        chip.scale.setScalar(protectionScale * Math.max(0.15, 1 - phase * 1.4))
       })
     })
 
@@ -365,6 +391,18 @@ export default function Hail() {
               depthWrite={false}
             />
           </mesh>
+          {Array.from({ length: 3 }, (_, bounceIndex) => (
+            <mesh key={`bounce-${bounceIndex}`} castShadow>
+              <icosahedronGeometry args={[0.09 + bounceIndex * 0.012, 0]} />
+              <meshStandardMaterial
+                color="#edf9ff"
+                emissive="#9edcff"
+                emissiveIntensity={protectedByRoof ? 0.42 : 0.26}
+                roughness={0.18}
+                flatShading
+              />
+            </mesh>
+          ))}
           {Array.from({ length: 5 }, (_, chipIndex) => (
             <mesh key={chipIndex} castShadow>
               <boxGeometry args={[0.07, 0.045, 0.2]} />
