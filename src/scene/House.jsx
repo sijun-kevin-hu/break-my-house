@@ -30,13 +30,21 @@ const COLORS = {
   rug: '#6b8f9c',
 }
 
-// Footprint: 4 (x) by 3 (z), walls 2.5 tall. Center of the room is [0, 1.25, 0].
-const W = 4
-const D = 3
-const H = 2.5
+// Generous footprint for a more legible, roomier dollhouse. The roof dimensions
+// below deliberately exceed this footprint, giving every wall a real eave.
+const W = 5.6
+const D = 4.2
+const H = 3.1
 const T = 0.1 // wall thickness
 const ROOM_CENTER = [0, H / 2, 0]
-const CAM_TARGET = [0, 1.5, 0] // must match OrbitControls target in Scene.jsx
+const CAM_TARGET = [0, 2.1, 0] // must match OrbitControls target in Scene.jsx
+
+const ROOF_EAVE = 0.38
+const ROOF_RISE = 1.45
+const ROOF_RUN = W / 2 + ROOF_EAVE
+const ROOF_LENGTH = D + ROOF_EAVE * 2
+const ROOF_SLOPE = Math.atan(ROOF_RISE / ROOF_RUN)
+const ROOF_PANEL_LENGTH = Math.hypot(ROOF_RUN, ROOF_RISE)
 
 // Each wall: outward-facing normal + placement. We fade a wall when its outward
 // normal points toward the camera (i.e. it's on the near side of the room).
@@ -79,16 +87,18 @@ const clamp01 = (v) => Math.min(1, Math.max(0, v))
 const NOOP_RAYCAST = () => {}
 
 /**
- * Roof (with its chimney) reveals the interior on either trigger — tilting the
+ * Gable roof (with its chimney) reveals the interior on either trigger — tilting the
  * camera toward top-down OR zooming in close — so you're never left with the
  * roof blocking the rooms (Sims-style doll's house). Both fade together, fully
  * to zero, and stop casting their shadow onto the floor once hidden. Kept
  * raycastable (never visible=false) so the roof can still be a click target for
  * the hail disaster later.
  */
-function Roof({ color }) {
-  const roofRef = useRef()
-  const roofMatRef = useRef()
+function Roof({ color, wallColor }) {
+  const roofRefs = useRef([])
+  const roofMatRefs = useRef([])
+  const gableRefs = useRef([])
+  const gableMatRefs = useRef([])
   const chimneyRef = useRef()
   const chimneyMatRef = useRef()
 
@@ -97,9 +107,16 @@ function Roof({ color }) {
   const { hovered, bind } = useClickable(() => trigger('hail'), triggered)
 
   useFrame(({ camera }) => {
-    const roofMat = roofMatRef.current
+    const roofMats = roofMatRefs.current
+    const gableMats = gableMatRefs.current
     const chimneyMat = chimneyMatRef.current
-    if (!roofMat || !chimneyMat) return
+    if (
+      roofMats.length !== 2 ||
+      roofMats.some((mat) => !mat) ||
+      gableMats.length !== 2 ||
+      gableMats.some((mat) => !mat) ||
+      !chimneyMat
+    ) return
 
     const dx = camera.position.x - CAM_TARGET[0]
     const dy = camera.position.y - CAM_TARGET[1]
@@ -117,40 +134,91 @@ function Roof({ color }) {
     const reveal = Math.max(pitchReveal, zoomReveal)
 
     const target = 1 - reveal
-    roofMat.opacity += (target - roofMat.opacity) * 0.15
-    chimneyMat.opacity = roofMat.opacity // chimney tracks the roof exactly
+    roofMats.forEach((mat) => {
+      mat.opacity += (target - mat.opacity) * 0.15
+    })
+    gableMats.forEach((mat) => {
+      mat.opacity = roofMats[0].opacity
+    })
+    chimneyMat.opacity = roofMats[0].opacity // chimney tracks the roof exactly
     // Shadows ignore material opacity, so kill the cast shadow once faded or the
     // interior stays darkened by a phantom roof.
-    const solid = roofMat.opacity > 0.5
-    if (roofRef.current) {
-      roofRef.current.castShadow = solid
+    const solid = roofMats[0].opacity > 0.5
+    const roofPieces = [...roofRefs.current, ...gableRefs.current, chimneyRef.current]
+    roofPieces.forEach((piece) => {
+      if (!piece) return
+      piece.castShadow = solid
       // While faded (interior revealed) the roof must NOT eat clicks meant for
       // the stove/furniture underneath — drop it out of raycasting. While solid
       // it's the hail trigger.
-      roofRef.current.raycast = solid ? THREE.Mesh.prototype.raycast : NOOP_RAYCAST
-    }
-    if (chimneyRef.current) chimneyRef.current.castShadow = solid
+      piece.raycast = solid ? THREE.Mesh.prototype.raycast : NOOP_RAYCAST
+    })
 
     // Warm hover glow so the roof reads as the hail trigger.
     const glow = hovered ? 0.5 : 0
-    roofMat.emissiveIntensity = THREE.MathUtils.lerp(roofMat.emissiveIntensity, glow, 0.2)
+    roofMats.forEach((mat) => {
+      mat.emissiveIntensity = THREE.MathUtils.lerp(mat.emissiveIntensity, glow, 0.2)
+    })
   })
 
   return (
     <group>
-      <mesh ref={roofRef} position={[0, 3.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow {...bind}>
-        <coneGeometry args={[2.9, 1.7, 4]} />
-        <meshStandardMaterial
-          ref={roofMatRef}
-          color={color}
-          emissive="#ffcaa0"
-          emissiveIntensity={0}
-          flatShading
-          transparent
-          opacity={1}
-        />
-      </mesh>
-      <mesh ref={chimneyRef} position={[1.2, 3.4, -0.6]} castShadow>
+      {/* Two pitched panels make a proper gable: their outer edges extend past
+          all four walls, so no wall can protrude through the roofline. */}
+      {[-1, 1].map((side, index) => (
+        <mesh
+          key={side}
+          ref={(el) => (roofRefs.current[index] = el)}
+          position={[side * ROOF_RUN / 2, H + ROOF_RISE / 2 + 0.03, 0]}
+          rotation={[0, 0, -side * ROOF_SLOPE]}
+          castShadow
+          {...bind}
+        >
+          <boxGeometry args={[ROOF_PANEL_LENGTH, 0.18, ROOF_LENGTH]} />
+          <meshStandardMaterial
+            ref={(el) => (roofMatRefs.current[index] = el)}
+            color={color}
+            emissive="#ffcaa0"
+            emissiveIntensity={0}
+            flatShading
+            transparent
+            opacity={1}
+          />
+        </mesh>
+      ))}
+
+      {/* Filled gable ends visually join the roof to the rectangular walls.
+          They fade with the roof so the cutaway behavior stays intact. */}
+      {[-1, 1].map((side, index) => (
+        <mesh
+          key={side}
+          ref={(el) => (gableRefs.current[index] = el)}
+          position={[0, H - 0.03, side * D / 2]}
+          rotation={[0, side < 0 ? Math.PI : 0, 0]}
+          castShadow
+          {...bind}
+        >
+          <shapeGeometry
+            args={[
+              new THREE.Shape()
+                .moveTo(-W / 2, 0)
+                .lineTo(W / 2, 0)
+                .lineTo(0, ROOF_RISE + 0.08)
+                .closePath(),
+            ]}
+          />
+          <meshStandardMaterial
+            ref={(el) => (gableMatRefs.current[index] = el)}
+            color={wallColor}
+            flatShading
+            side={THREE.DoubleSide}
+            transparent
+            opacity={1}
+          />
+        </mesh>
+      ))}
+
+      <mesh ref={chimneyRef} position={[1.25, 4.55, -0.75]} castShadow {...bind}>
         <boxGeometry args={[0.5, 1.2, 0.5]} />
         <meshStandardMaterial ref={chimneyMatRef} color="#8f5b4a" flatShading transparent opacity={1} />
       </mesh>
@@ -174,7 +242,7 @@ export default function House() {
     <group position={[0, 0, 0]}>
       {/* Foundation plinth — grounds the house on the terrain */}
       <mesh position={[0, -0.05, 0]} castShadow receiveShadow>
-        <boxGeometry args={[W + 0.4, 0.3, D + 0.4]} />
+        <boxGeometry args={[W + 0.45, 0.3, D + 0.45]} />
         <meshStandardMaterial color="#b9a988" flatShading />
       </mesh>
 
@@ -185,8 +253,8 @@ export default function House() {
       </mesh>
 
       {/* Rug in the living area */}
-      <mesh position={[-0.6, 0.11, 0.4]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[1.8, 1.4]} />
+      <mesh position={[-0.55, 0.11, 0.55]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[2.4, 1.8]} />
         <meshStandardMaterial color={COLORS.rug} />
       </mesh>
 
@@ -195,8 +263,8 @@ export default function House() {
         <Wall key={w.id} {...w} color={wallColor} />
       ))}
 
-      {/* Roof (cartoon prism via rotated cone) — fades as camera tilts top-down */}
-      <Roof color={roofColor} />
+      {/* Proper gable roof — fades as camera tilts top-down */}
+      <Roof color={roofColor} wallColor={wallColor} />
 
       {/* Door (in south wall) with frame + knob */}
       <group position={[0, 0.7, D / 2 + 0.01]}>
@@ -215,7 +283,7 @@ export default function House() {
       </group>
 
       {/* Windows (in south wall) with frames */}
-      {[-1.2, 1.2].map((x) => (
+      {[-1.65, 1.65].map((x) => (
         <group key={x} position={[x, 1.5, D / 2 + 0.01]}>
           <mesh position={[0, 0, -0.02]}>
             <boxGeometry args={[0.86, 0.86, 0.05]} />

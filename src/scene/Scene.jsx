@@ -62,10 +62,10 @@ export default function Scene() {
 
       <OrbitControls
         enablePan={false}
-        minDistance={6}
-        maxDistance={20}
+        minDistance={7}
+        maxDistance={22}
         maxPolarAngle={Math.PI / 2.1}
-        target={[0, 1.5, 0]}
+        target={[0, 2.1, 0]}
       />
     </>
   )
