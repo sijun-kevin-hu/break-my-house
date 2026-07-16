@@ -15,15 +15,44 @@ const ROOF_SLOPE = Math.atan(ROOF_RISE / ROOF_RUN)
 const WING_X_MIN = 2.8
 const WING_X_MAX = 9.6
 const WING_DEPTH = 6.8
+const CORE_ROOF_HALF_Z = 2.48
 const WING_ROOF_BASE = 2.42
 const WING_ROOF_RISE = 1.12
 const WING_ROOF_RUN = WING_DEPTH / 2 + 0.32
+const WING_ROOF_X_MAX = WING_X_MAX + 0.32
 const WING_ROOF_SLOPE = Math.atan(WING_ROOF_RISE / WING_ROOF_RUN)
 const IMPACT_CYCLE = 1.55
 const ACCUMULATION_TIME = 5.6
 
 const roofHeight = (x) =>
   ROOF_BASE + ROOF_RISE * (1 - Math.min(ROOF_RUN, Math.abs(x)) / ROOF_RUN) + 0.16
+const wingRoofHeight = (z) =>
+  WING_ROOF_BASE +
+  WING_ROOF_RISE * (1 - Math.min(WING_ROOF_RUN, Math.abs(z)) / WING_ROOF_RUN) +
+  0.16
+
+const isCoveredByRoof = (x, z) =>
+  (Math.abs(x) <= ROOF_RUN && Math.abs(z) <= CORE_ROOF_HALF_Z) ||
+  (x >= WING_X_MIN && x <= WING_ROOF_X_MAX && Math.abs(z) <= WING_ROOF_RUN)
+
+// The weather field is deliberately not a physics simulation, but it still
+// needs to respect the authored house shell. When a falling stone reaches one
+// of these roof surfaces, recycle it into the cloud field; the separate,
+// timed IMPACTS supply the readable roof-contact spectacle. This also keeps a
+// faded cutaway roof from making hail appear to fall through the rooms.
+const roofCollisionHeight = (x, z) => {
+  let height = -Infinity
+
+  if (Math.abs(x) <= ROOF_RUN && Math.abs(z) <= CORE_ROOF_HALF_Z) {
+    height = roofHeight(x)
+  }
+
+  if (x >= WING_X_MIN && x <= WING_ROOF_X_MAX && Math.abs(z) <= WING_ROOF_RUN) {
+    height = Math.max(height, wingRoofHeight(z))
+  }
+
+  return height
+}
 
 const CORE_IMPACTS = Array.from({ length: 14 }, (_, i) => {
   const x = -2.55 + ((i * 47) % 50) * 0.102
@@ -36,10 +65,6 @@ const CORE_IMPACTS = Array.from({ length: 14 }, (_, i) => {
   }
 })
 
-const wingRoofHeight = (z) =>
-  WING_ROOF_BASE +
-  WING_ROOF_RISE * (1 - Math.min(WING_ROOF_RUN, Math.abs(z)) / WING_ROOF_RUN) +
-  0.16
 const WING_IMPACTS = Array.from({ length: 12 }, (_, i) => {
   const x = 3.25 + ((i * 41) % 61) * 0.1
   const z = -3.05 + ((i * 37) % 57) * 0.105
@@ -109,20 +134,25 @@ const WING_GROUND_HAIL = Array.from({ length: 280 }, (_, i) => {
     reveal: ((i * 41) % 100) / 100,
   }
 })
-const GROUND_HAIL = [...CORE_GROUND_HAIL, ...WING_GROUND_HAIL]
+// The core's former east perimeter is now covered by the bedroom wing. Mask
+// the union of both roofs so none of the legacy perimeter field settles on an
+// interior floor or beneath an eave.
+const GROUND_HAIL = [...CORE_GROUND_HAIL, ...WING_GROUND_HAIL].filter(
+  ({ x, z }) => !isCoveredByRoof(x, z)
+)
 
 // A handful of larger low-poly drifts make the later stage read as actual
 // pileup, rather than merely a carpet of individual stones.
 const HAIL_DRIFTS = [
   { position: [-2.35, 2.62], scale: [0.88, 0.22, 0.5], delay: 0.18 },
-  { position: [5.1, 3.72], scale: [1.18, 0.27, 0.5], delay: 0.26 },
+  { position: [5.1, 3.88], scale: [1.18, 0.27, 0.5], delay: 0.26 },
   { position: [-0.72, 2.72], scale: [1.06, 0.26, 0.58], delay: 0.34 },
-  { position: [8.1, -3.72], scale: [1.02, 0.25, 0.52], delay: 0.42 },
+  { position: [8.1, -3.88], scale: [1.02, 0.25, 0.52], delay: 0.42 },
   { position: [1.1, 2.62], scale: [0.92, 0.24, 0.52], delay: 0.5 },
-  { position: [9.9, 0.72], scale: [0.56, 0.2, 0.94], delay: 0.58 },
+  { position: [10.1, 0.72], scale: [0.56, 0.2, 0.94], delay: 0.58 },
   { position: [2.72, 2.76], scale: [0.68, 0.18, 0.46], delay: 0.66 },
-  { position: [-3.18, -1.22], scale: [0.52, 0.19, 0.92], delay: 0.82 },
-  { position: [3.2, -0.32], scale: [0.54, 0.2, 1.02], delay: 1.02 },
+  { position: [-3.35, -1.22], scale: [0.52, 0.19, 0.92], delay: 0.82 },
+  { position: [10.12, -0.32], scale: [0.54, 0.2, 1.02], delay: 1.02 },
   { position: [-2.1, -2.58], scale: [0.84, 0.2, 0.42], delay: 1.2 },
   { position: [0.05, -2.64], scale: [1.1, 0.27, 0.48], delay: 1.4 },
   { position: [2.12, -2.56], scale: [0.8, 0.21, 0.42], delay: 1.62 },
@@ -247,7 +277,8 @@ export default function Hail() {
     stones.forEach((stone, i) => {
       stone.y -= stone.speed * delta
       stone.x += stone.drift * delta
-      if (stone.y < 0) {
+      const roofY = roofCollisionHeight(stone.x, stone.z)
+      if (stone.y < 0 || stone.y <= roofY) {
         stone.y = TOP + (i % 5) * 0.35
         stone.x = -AREA / 2 + ((i * 61) % 200) * (AREA / 200)
       }
@@ -283,9 +314,11 @@ export default function Hail() {
       group.children.slice(1).forEach((chip, chipIndex) => {
         const angle = (chipIndex / 5) * Math.PI * 2 + impactIndex
         const speed = 0.65 + (chipIndex % 3) * 0.24
+        const bounceHeight =
+          0.08 + (1.2 + chipIndex * 0.08) * phase - 3.2 * phase * phase
         chip.position.set(
           Math.cos(angle) * speed * phase,
-          0.08 + (1.2 + chipIndex * 0.08) * phase - 3.2 * phase * phase,
+          Math.max(0.04, bounceHeight),
           Math.sin(angle) * speed * phase
         )
         chip.rotation.set(phase * 8, phase * (10 + chipIndex), phase * 6)

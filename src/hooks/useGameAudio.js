@@ -194,7 +194,7 @@ export default function useGameAudio() {
     }
 
     if (
-      (triggered?.tree && !previous.tree) ||
+      (triggered?.tree && !previous.tree && !preventions?.removeTree) ||
       (triggered?.fallenTree && !previous.fallenTree) ||
       (triggered?.["fallen-tree"] && !previous["fallen-tree"])
     ) {
