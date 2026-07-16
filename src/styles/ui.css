@@ -213,16 +213,39 @@ body,
 }
 
 .close-btn {
+  position: relative;
   margin-top: 14px;
   width: 100%;
-  padding: 10px;
-  border: none;
+  padding: 12px;
+  border: 3px solid #fff;
   border-radius: 12px;
-  background: #1e3a2f;
+  background: #e7892e;
+  box-shadow: 0 4px 0 #9f481b, 0 8px 16px rgba(159, 72, 27, 0.36);
   color: #fff;
   font-family: inherit;
+  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
+  animation: got-it-pulse 1.35s ease-in-out infinite;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.close-btn:hover {
+  background: #f0a13e;
+  box-shadow: 0 5px 0 #9f481b, 0 10px 18px rgba(159, 72, 27, 0.4);
+  transform: translateY(-2px);
+}
+
+.close-btn:active {
+  box-shadow: 0 1px 0 #9f481b;
+  transform: translateY(3px);
+}
+
+.close-btn:focus-visible { outline: 4px solid #edb84b; outline-offset: 3px; }
+
+@keyframes got-it-pulse {
+  0%, 100% { box-shadow: 0 4px 0 #9f481b, 0 8px 16px rgba(159, 72, 27, 0.36); }
+  50% { box-shadow: 0 4px 0 #9f481b, 0 0 0 6px rgba(240, 161, 62, 0.34), 0 10px 20px rgba(159, 72, 27, 0.46); }
 }
 
 /* First-load orientation: a compact inspection card over the live house. */
@@ -387,4 +410,5 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .intro-screen { animation: none; }
   .intro-start { transition: none; }
+  .close-btn { animation: none; transition: none; }
 }

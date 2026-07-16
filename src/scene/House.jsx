@@ -31,6 +31,9 @@ const COLORS = {
 }
 const WALL_BASE_COLOR = new THREE.Color(COLORS.wall)
 const WALL_CHAR_COLOR = new THREE.Color('#171513')
+const ROOF_BASE_COLOR = new THREE.Color(COLORS.roof)
+const ROOF_DENTED_COLOR = new THREE.Color(COLORS.roofDented)
+const ROOF_SCUFFED_COLOR = new THREE.Color(COLORS.roofScuffed)
 
 // Generous footprint for a more legible, roomier dollhouse. The roof dimensions
 // below deliberately exceed this footprint, giving every wall a real eave.
@@ -137,27 +140,51 @@ function Wall({ id, normal, position, size, fireActive, fireReduced }) {
   )
 }
 
-/** Layered floor scorch that blooms outward from the stove over several seconds. */
+/**
+ * Persistent, overlapping burn patches that make the unprotected fire's route
+ * read as one broad floor-level aftermath instead of a few isolated spots.
+ */
 function FireScorch({ active, reduced }) {
   const mats = useRef([])
-  const progress = useRef(0)
+  const age = useRef(0)
+
+  const marks = [
+    // Stove and counter: a large, dense ignition zone.
+    { position: [-1.76, 0.121, -1.37], radius: 1.28, scale: [1.18, 0.78, 1], delay: 0, opacity: 0.98 },
+    { position: [-1.43, 0.122, -1.18], radius: 1.06, scale: [1.4, 0.52, 1], delay: 0.18, opacity: 0.9 },
+    { position: [-1.3, 0.123, -0.78], radius: 1.12, scale: [1.28, 0.62, 1], delay: 0.62, opacity: 0.94 },
+    { position: [-0.88, 0.124, -0.92], radius: 0.82, scale: [1.35, 0.48, 1], delay: 0.82, opacity: 0.76 },
+    // The TV and fridge burn a continuous path across the front of the room.
+    { position: [-1.06, 0.124, -0.34], radius: 1.02, scale: [1.45, 0.58, 1], delay: 1.3, opacity: 0.92 },
+    { position: [-0.48, 0.123, -0.48], radius: 0.78, scale: [1.28, 0.48, 1], delay: 1.55, opacity: 0.7 },
+    { position: [0.18, 0.123, -0.82], radius: 0.9, scale: [1.48, 0.5, 1], delay: 1.78, opacity: 0.78 },
+    { position: [0.9, 0.123, -1.14], radius: 0.9, scale: [1.34, 0.62, 1], delay: 2.0, opacity: 0.86 },
+    { position: [1.54, 0.122, -1.3], radius: 0.72, scale: [1.14, 0.54, 1], delay: 2.22, opacity: 0.68 },
+    // Living, dining, and storage get broad but irregular trailing patches.
+    { position: [-1.18, 0.124, 0.42], radius: 1.1, scale: [1.28, 0.76, 1], delay: 2.45, opacity: 0.94 },
+    { position: [-0.74, 0.123, 0.86], radius: 0.9, scale: [1.36, 0.52, 1], delay: 2.72, opacity: 0.78 },
+    { position: [0.1, 0.123, 0.68], radius: 0.82, scale: [1.4, 0.54, 1], delay: 2.92, opacity: 0.72 },
+    { position: [0.88, 0.123, 0.46], radius: 1.02, scale: [1.35, 0.66, 1], delay: 3.0, opacity: 0.88 },
+    { position: [1.52, 0.122, 0.54], radius: 0.76, scale: [1.2, 0.5, 1], delay: 3.22, opacity: 0.7 },
+    { position: [2.18, 0.122, -0.08], radius: 0.7, scale: [1.1, 0.52, 1], delay: 3.5, opacity: 0.7 },
+  ]
 
   useFrame((_, delta) => {
-    const target = active ? (reduced ? 0.26 : 1) : 0
-    progress.current = THREE.MathUtils.damp(progress.current, target, active ? 0.95 : 4, delta)
+    age.current = active ? age.current + delta : 0
     mats.current.forEach((material, index) => {
       if (!material) return
-      material.opacity = progress.current * (index === 0 ? 0.94 : index === 1 ? 0.76 : 0.64)
+      const mark = marks[index]
+      const hasReachedMark = active && age.current >= mark.delay
+      const target = hasReachedMark
+        ? (reduced ? (index === 0 ? 0.42 : index === 1 ? 0.16 : 0) : mark.opacity)
+        : 0
+      material.opacity = THREE.MathUtils.damp(material.opacity, target, active ? 1.25 : 4, delta)
     })
   })
 
   return (
     <group>
-      {[
-        { position: [-1.72, 0.116, -1.42], radius: 0.96, scale: [1.1, 0.78, 1] },
-        { position: [-1.18, 0.117, -1.1], radius: 0.74, scale: [1.25, 0.68, 1] },
-        { position: [-1.15, 0.118, -0.68], radius: 0.62, scale: [1.35, 0.56, 1] },
-      ].map((mark, index) => (
+      {marks.map((mark, index) => (
         <mesh
           key={index}
           position={mark.position}
@@ -165,14 +192,15 @@ function FireScorch({ active, reduced }) {
           scale={mark.scale}
           renderOrder={2}
         >
-          <circleGeometry args={[mark.radius, 14]} />
-          <meshStandardMaterial
+          <circleGeometry args={[mark.radius, 9]} />
+          <meshBasicMaterial
             ref={(material) => (mats.current[index] = material)}
-            color={index === 0 ? '#0d0b0a' : index === 1 ? '#241512' : '#382018'}
+            color={index % 3 === 0 ? '#0b0705' : index % 2 ? '#24110a' : '#140906'}
             transparent
             opacity={0}
             depthWrite={false}
-            roughness={1}
+            polygonOffset
+            polygonOffsetFactor={-2}
           />
         </mesh>
       ))}
@@ -183,20 +211,37 @@ function FireScorch({ active, reduced }) {
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
 const NOOP_RAYCAST = () => {}
 
-/** Persistent craters and broken shingle edges left after the hail resolves. */
-function HailDamage({ state, opacitySource }) {
+/** Roof dents land in a staggered sequence instead of popping in with the panel. */
+function HailDamage({ state, active, reduced, opacitySource }) {
   const materialRefs = useRef([])
   const groupRefs = useRef([])
-  const full = state === 'full'
-  const count = full ? HAIL_DENTS.length : state === 'reduced' ? 3 : 0
+  const ageRef = useRef(0)
+  const visualState = active ? (reduced ? 'reduced' : 'full') : state
+  const full = visualState === 'full'
+  const count = full ? HAIL_DENTS.length : visualState === 'reduced' ? 3 : 0
 
-  useFrame(() => {
+  useFrame((_, delta) => {
+    ageRef.current = active ? ageRef.current + delta : 0
     const opacity = opacitySource.current[0]?.opacity ?? 1
-    groupRefs.current.forEach((group) => {
-      if (group) group.visible = opacity > 0.04
+    groupRefs.current.forEach((group, index) => {
+      if (!group) return
+      const reveal = THREE.MathUtils.smootherstep(
+        Math.max(0, ageRef.current - index * 0.11) / 0.58,
+        0,
+        1
+      )
+      group.visible = opacity > 0.04 && reveal > 0.001
+      group.scale.setScalar(0.015 + reveal * 0.985)
     })
-    materialRefs.current.forEach((material) => {
-      if (material) material.opacity = opacity
+    materialRefs.current.forEach((material, index) => {
+      if (!material) return
+      const dentIndex = Math.floor(index / 2)
+      const reveal = THREE.MathUtils.smootherstep(
+        Math.max(0, ageRef.current - dentIndex * 0.11) / 0.58,
+        0,
+        1
+      )
+      material.opacity = opacity * reveal
     })
   })
 
@@ -262,7 +307,7 @@ function HailDamage({ state, opacitySource }) {
  * raycastable (never visible=false) so the roof can still be a click target for
  * the hail disaster later.
  */
-function Roof({ color, wallColor }) {
+function Roof({ wallColor }) {
   const roofRefs = useRef([])
   const roofMatRefs = useRef([])
   const gableRefs = useRef([])
@@ -273,11 +318,16 @@ function Roof({ color, wallColor }) {
   const treeDamageMatRefs = useRef([])
 
   const triggered = useGameStore((s) => !!s.triggered.hail)
+  const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
   const hailDamage = useGameStore((s) => s.damage.hail)
+  const protectedByRoof = useGameStore((s) => !!s.preventions.hail)
   const treeTriggered = useGameStore((s) => !!s.triggered.tree)
   const treeRemoved = useGameStore((s) => !!s.preventions.removeTree)
   const trigger = useGameStore((s) => s.triggerDisaster)
-  const { hovered, bind } = useClickable(() => trigger('hail'), triggered)
+  const { hovered, bind } = useClickable(
+    () => trigger('hail'),
+    triggered || acknowledgementRequired
+  )
   const [treeImpactVisible, setTreeImpactVisible] = useState(false)
 
   useEffect(() => {
@@ -289,7 +339,7 @@ function Roof({ color, wallColor }) {
     return () => clearTimeout(timer)
   }, [treeTriggered, treeRemoved])
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera }, delta) => {
     const roofMats = roofMatRefs.current
     const gableMats = gableMatRefs.current
     const chimneyMat = chimneyMatRef.current
@@ -317,8 +367,12 @@ function Roof({ color, wallColor }) {
     const reveal = Math.max(pitchReveal, zoomReveal)
 
     const target = 1 - reveal
+    const roofColor = triggered
+      ? (protectedByRoof ? ROOF_SCUFFED_COLOR : ROOF_DENTED_COLOR)
+      : ROOF_BASE_COLOR
     roofMats.forEach((mat) => {
       mat.opacity += (target - mat.opacity) * 0.15
+      mat.color.lerp(roofColor, Math.min(1, delta * 1.25))
     })
     gableMats.forEach((mat) => {
       mat.opacity = roofMats[0].opacity
@@ -373,7 +427,7 @@ function Roof({ color, wallColor }) {
             <boxGeometry args={segment.size} />
             <meshStandardMaterial
               ref={(el) => (roofMatRefs.current[index] = el)}
-              color={color}
+              color={COLORS.roof}
               emissive="#ffcaa0"
               emissiveIntensity={0}
               flatShading
@@ -395,7 +449,7 @@ function Roof({ color, wallColor }) {
         <boxGeometry args={[ROOF_PANEL_LENGTH, 0.18, ROOF_LENGTH]} />
         <meshStandardMaterial
           ref={(el) => (roofMatRefs.current[LEFT_ROOF_SEGMENTS.length] = el)}
-          color={color}
+          color={COLORS.roof}
           emissive="#ffcaa0"
           emissiveIntensity={0}
           flatShading
@@ -404,7 +458,12 @@ function Roof({ color, wallColor }) {
         />
       </mesh>
 
-      <HailDamage state={hailDamage} opacitySource={roofMatRefs} />
+      <HailDamage
+        state={hailDamage}
+        active={triggered}
+        reduced={protectedByRoof}
+        opacitySource={roofMatRefs}
+      />
 
       {/* Filled gable ends visually join the roof to the rectangular walls.
           They fade with the roof so the cutaway behavior stays intact. */}
@@ -592,16 +651,8 @@ function Roof({ color, wallColor }) {
 }
 
 export default function House() {
-  const damage = useGameStore((s) => s.damage)
   const fireActive = useGameStore((s) => !!s.triggered.fire)
   const fireReduced = useGameStore((s) => !!s.preventions.fire)
-
-  const roofColor =
-    damage.hail === 'full'
-      ? COLORS.roofDented
-      : damage.hail === 'reduced'
-        ? COLORS.roofScuffed
-        : COLORS.roof
 
   return (
     <group position={[0, 0, 0]}>
@@ -636,7 +687,7 @@ export default function House() {
       <FireScorch active={fireActive} reduced={fireReduced} />
 
       {/* Proper gable roof — fades as camera tilts top-down */}
-      <Roof color={roofColor} wallColor={COLORS.wall} />
+      <Roof wallColor={COLORS.wall} />
 
       {/* Door (in south wall) with frame + knob */}
       <group position={[0, 0.7, D / 2 + 0.01]}>
@@ -694,9 +745,13 @@ export default function House() {
  */
 function Stove() {
   const triggered = useGameStore((s) => !!s.triggered.fire)
+  const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
   const protectedByPrevention = useGameStore((s) => !!s.preventions.fire)
   const trigger = useGameStore((s) => s.triggerDisaster)
-  const { hovered, bind } = useClickable(() => trigger('fire'), triggered)
+  const { hovered, bind } = useClickable(
+    () => trigger('fire'),
+    triggered || acknowledgementRequired
+  )
 
   const burnerMats = useRef([])
   const burners = []
@@ -759,7 +814,7 @@ function Television() {
 
   useFrame((state, delta) => {
     fireAge.current = fireActive ? fireAge.current + delta : 0
-    const spreadReachedTv = fireActive && !fireReduced && fireAge.current > 1.05
+    const spreadReachedTv = fireActive && !fireReduced && fireAge.current > 1.25
     const target = spreadReachedTv ? 1 : fireActive && fireReduced ? 0.12 : 0
     burnProgress.current = THREE.MathUtils.damp(
       burnProgress.current,
@@ -880,6 +935,7 @@ function Furniture() {
         scale={0.62}
         burnActive={fireActive}
         burnStrength={fireReduced ? 0.16 : 0.82}
+        burnDelay={fireReduced ? 0 : 0.72}
       />
       <InteriorModel
         asset="/models/house-interior/Kitchen Fridge.glb"
@@ -887,6 +943,7 @@ function Furniture() {
         scale={0.55}
         burnActive={fireActive}
         burnStrength={fireReduced ? 0.06 : 0.4}
+        burnDelay={fireReduced ? 0 : 2.05}
       />
 
       {/* Living area: turn the sofa toward the TV across the coffee table. */}
@@ -895,13 +952,26 @@ function Furniture() {
         position={[-1.15, 0, 1.1]}
         rotation={[0, Math.PI, 0]}
         scale={0.55}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.88}
+        burnDelay={2.55}
       />
       <InteriorModel
         asset="/models/house-interior/Table Round Small.glb"
         position={[-1.15, 0.02, 0.05]}
         scale={0.43}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.58}
+        burnDelay={2.9}
       />
-      <InteriorModel asset="/models/house-interior/Lamp.glb" position={[-2.3, 0, 0.7]} scale={1.3} />
+      <InteriorModel
+        asset="/models/house-interior/Lamp.glb"
+        position={[-2.3, 0, 0.7]}
+        scale={1.3}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.68}
+        burnDelay={3.2}
+      />
       <Television />
 
       {/* Dining nook: two chairs make the round table read as intentional. */}
@@ -909,22 +979,34 @@ function Furniture() {
         asset="/models/house-interior/Table Round Small.glb"
         position={[1.25, 0.02, 0.55]}
         scale={0.48}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.82}
+        burnDelay={3.05}
       />
       <InteriorModel
         asset="/models/house-interior/Chair.glb"
         position={[1.25, 0, 1.45]}
         rotation={[0, Math.PI, 0]}
         scale={0.45}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.72}
+        burnDelay={3.28}
       />
       <InteriorModel
         asset="/models/house-interior/Chair.glb"
         position={[1.25, 0, -0.35]}
         scale={0.45}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.64}
+        burnDelay={3.42}
       />
       <InteriorModel
         asset="/models/house-interior/Houseplant.glb"
         position={[1.25, 0.58, 0.55]}
         scale={0.75}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.78}
+        burnDelay={3.42}
       />
 
       {/* Tall storage and plant life give the exposed side of the house depth. */}
@@ -933,11 +1015,17 @@ function Furniture() {
         position={[2.55, 0, -0.15]}
         rotation={[0, Math.PI / 2, 0]}
         scale={0.36}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.78}
+        burnDelay={3.5}
       />
       <InteriorModel
         asset="/models/house-interior/Houseplant-VtJh4Irl4w.glb"
         position={[2.1, 0, 1.25]}
         scale={1.15}
+        burnActive={fireActive && !fireReduced}
+        burnStrength={0.74}
+        burnDelay={3.65}
       />
     </group>
   )

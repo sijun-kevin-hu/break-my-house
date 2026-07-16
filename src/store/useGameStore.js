@@ -15,7 +15,8 @@ const getDisasterOutcome = (preventions, disasterId) => {
  *
  * Disasters are triggered by clicking their object in the scene (roof, stove,
  * backyard tree) and then PERSIST — the effect keeps running and the damage
- * stays — until the player hits "Reset house". Several can pile up at once.
+ * stays — until the player hits "Reset house". Players acknowledge each result
+ * before they can start the next disaster.
  *
  *  - triggered:  { [id]: true } disasters that have fired and are still going
  *  - damage:     { [id]: 'full' | 'reduced' | 'prevented' } outcome applied
@@ -24,6 +25,8 @@ const getDisasterOutcome = (preventions, disasterId) => {
  *  - impacts:    count of disasters still inside their initial "impact" window,
  *                used only to drive the camera shake (so it settles down)
  *  - panelDisaster: which disaster the InfoPanel currently shows
+ *  - acknowledgementRequired: blocks new disaster selections from the instant
+ *                an event begins until its result panel's "Got it" is pressed
  *  - hasStarted:  whether the one-time first-load orientation panel is dismissed
  */
 export const useGameStore = create((set, get) => ({
@@ -33,9 +36,10 @@ export const useGameStore = create((set, get) => ({
   preventions: {},
   impacts: 0,
   panelDisaster: null,
+  acknowledgementRequired: false,
 
   triggerDisaster: (id) => {
-    if (get().triggered[id]) return // already going — ignore repeat clicks
+    if (get().triggered[id] || get().acknowledgementRequired) return
     // Snapshot the outcome before the event starts. Related controls lock as
     // soon as the event is triggered, preventing retroactive protection.
     const outcome = getDisasterOutcome(get().preventions, id)
@@ -43,6 +47,7 @@ export const useGameStore = create((set, get) => ({
       triggered: { ...s.triggered, [id]: true },
       impacts: s.impacts + 1,
       panelDisaster: null,
+      acknowledgementRequired: true,
     }))
 
     // Surface the result shortly after the event's key beat. This is separate
@@ -69,14 +74,20 @@ export const useGameStore = create((set, get) => ({
     }))
   },
 
-  closePanel: () => set({ panelDisaster: null }),
+  closePanel: () => set({ panelDisaster: null, acknowledgementRequired: false }),
 
   startExperience: () => set({ hasStarted: true }),
 
   showIntroduction: () => set({ hasStarted: false }),
 
   resetHouse: () =>
-    set({ triggered: {}, damage: {}, impacts: 0, panelDisaster: null }),
+    set({
+      triggered: {},
+      damage: {},
+      impacts: 0,
+      panelDisaster: null,
+      acknowledgementRequired: false,
+    }),
 
   // Derived: 100 base, minus per-disaster risk unless prevented
   riskScore: () => {

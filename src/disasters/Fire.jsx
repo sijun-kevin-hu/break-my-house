@@ -5,19 +5,38 @@ import { useGameStore } from '../store/useGameStore'
 // Anchored at the kitchen stove (back-left corner) so the fire reads as coming
 // straight off the burners the player clicked.
 const STOVE = [-1.78, -1.45] // [x, z]
-const TV_BACK = [-1.15, -0.9]
+const TV = [-1.15, -0.9]
 const FLAMES = [
   { position: [STOVE[0], 1.35, STOVE[1]], delay: 0, size: 1.2 },
   { position: [STOVE[0] - 0.22, 1.45, STOVE[1] + 0.12], delay: 0, size: 1 },
   { position: [STOVE[0] + 0.22, 1.32, STOVE[1] - 0.1], delay: 0, size: 1.08 },
-  { position: [TV_BACK[0] - 0.32, 0.76, TV_BACK[1]], delay: 1.05, size: 0.82 },
-  { position: [TV_BACK[0] + 0.12, 0.9, TV_BACK[1] - 0.04], delay: 1.2, size: 0.72 },
-  { position: [TV_BACK[0] + 0.4, 0.7, TV_BACK[1]], delay: 1.35, size: 0.62 },
+  { position: [-0.58, 1.15, -1.42], delay: 0.72, size: 0.7 },
+  { position: [-0.28, 1.08, -1.42], delay: 0.92, size: 0.62 },
+  { position: [TV[0] - 0.32, 0.76, TV[1]], delay: 1.25, size: 0.82 },
+  { position: [TV[0] + 0.12, 0.9, TV[1] - 0.04], delay: 1.42, size: 0.72 },
+  { position: [TV[0] + 0.4, 0.7, TV[1]], delay: 1.6, size: 0.62 },
+  { position: [1.72, 1.05, -1.42], delay: 2.05, size: 0.72 },
+  { position: [1.93, 1.55, -1.42], delay: 2.22, size: 0.58 },
+  { position: [-1.25, 0.84, 1.04], delay: 2.55, size: 0.8 },
+  { position: [-0.88, 0.74, 1.12], delay: 2.78, size: 0.62 },
+  { position: [1.18, 0.92, 0.55], delay: 3.05, size: 0.75 },
+  { position: [1.48, 0.78, 0.55], delay: 3.22, size: 0.58 },
+  { position: [2.48, 1.05, -0.12], delay: 3.5, size: 0.66 },
+]
+
+const SPREAD_LIGHTS = [
+  { position: [-0.45, 1.55, -1.4], delay: 0.72, distance: 4.2 },
+  { position: [TV[0], 1.35, TV[1]], delay: 1.25, distance: 4.4 },
+  { position: [1.72, 1.65, -1.42], delay: 2.05, distance: 4.1 },
+  { position: [-1.15, 1.5, 1.05], delay: 2.55, distance: 4.4 },
+  { position: [1.2, 1.5, 0.55], delay: 3.05, distance: 4.2 },
+  { position: [2.45, 1.6, -0.12], delay: 3.5, distance: 3.8 },
 ]
 
 /**
- * Cartoon fire at the kitchen corner: emissive cones that flicker in scale,
- * an orange point light, and grey smoke puffs drifting up.
+ * Choreographed interior fire: the stove bursts first, then the counter, TV,
+ * fridge, living area, and storage ignite in a readable sequence. Prevention
+ * stops that sequence at the stove and leaves only a small contained event.
  */
 export default function Fire() {
   const reduced = useGameStore((s) => !!s.preventions.fire)
@@ -25,20 +44,20 @@ export default function Fire() {
   const lightRef = useRef()
   const burstRef = useRef()
   const sparkRefs = useRef([])
+  const spreadLightRefs = useRef([])
   const ageRef = useRef(0)
   const smoke = useMemo(
     () =>
-      Array.from({ length: reduced ? 7 : 14 }, (_, i) => ({
-        offset: i * 0.5,
-        x:
-          !reduced && i % 3 === 0
-            ? TV_BACK[0] + (((i * 31) % 7) - 3) * 0.08
-            : STOVE[0] + (((i * 37) % 11) - 5) * 0.07,
-        z:
-          !reduced && i % 3 === 0
-            ? TV_BACK[1]
-            : STOVE[1] + (((i * 53) % 9) - 4) * 0.075,
-      })),
+      Array.from({ length: reduced ? 7 : 26 }, (_, i) => {
+        const source = FLAMES[reduced ? i % 3 : (i * 5) % FLAMES.length]
+        return {
+          offset: i * 0.43,
+          x: source.position[0] + (((i * 31) % 7) - 3) * 0.09,
+          z: source.position[2] + (((i * 53) % 9) - 4) * 0.08,
+          y: source.position[1],
+          delay: source.delay,
+        }
+      }),
     [reduced]
   )
   const sparks = useMemo(
@@ -84,6 +103,14 @@ export default function Fire() {
       const severity = reduced ? 0.58 : 1
       lightRef.current.intensity = (8 + Math.sin(t * 15) * 2.5 + burst * 14) * severity
     }
+    spreadLightRefs.current.forEach((light, index) => {
+      if (!light) return
+      const localAge = age - SPREAD_LIGHTS[index].delay
+      const progress = Math.min(1, Math.max(0, localAge / 0.45))
+      light.intensity = reduced
+        ? 0
+        : progress * (1.45 + Math.sin(t * 11 + index) * 0.38)
+    })
     if (burstRef.current) {
       const progress = Math.min(1, age / 0.72)
       burstRef.current.visible = progress < 1
@@ -103,8 +130,11 @@ export default function Fire() {
 
     smokeRefs.current.forEach((m, i) => {
       if (!m) return
-      const cycle = ((age + smoke[i].offset) % 2.5) / 2.5
-      m.position.y = 1.5 + cycle * 2.4
+      const localAge = age - smoke[i].delay
+      m.visible = localAge >= 0
+      if (!m.visible) return
+      const cycle = ((localAge + smoke[i].offset) % 2.5) / 2.5
+      m.position.y = smoke[i].y + 0.16 + cycle * 2.4
       m.material.opacity = (reduced ? 0.38 : 0.64) * (1 - cycle)
       m.scale.setScalar((reduced ? 0.18 : 0.28) + cycle * (reduced ? 0.48 : 0.72))
     })
@@ -123,6 +153,16 @@ export default function Fire() {
         </mesh>
       ))}
       <pointLight ref={lightRef} position={[STOVE[0], 1.7, STOVE[1]]} color="#ff6a00" distance={8} />
+      {SPREAD_LIGHTS.map((light, index) => (
+        <pointLight
+          key={`spread-light-${index}`}
+          ref={(el) => (spreadLightRefs.current[index] = el)}
+          position={light.position}
+          color="#ff6200"
+          distance={light.distance}
+          intensity={0}
+        />
+      ))}
       <mesh ref={burstRef} position={[STOVE[0], 1.38, STOVE[1]]}>
         <icosahedronGeometry args={[0.5, 1]} />
         <meshStandardMaterial

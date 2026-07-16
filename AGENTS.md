@@ -66,6 +66,8 @@ must be present and clickable before the tree disaster is triggered.
 - The only state transition for a disaster is `triggerDisaster(id)`.
 - Trigger objects are: roof → `hail`, stove → `fire`, backyard tree/stump →
   `tree`. Do not add disaster buttons to the toolbar.
+- Starting a disaster locks every scene trigger until its result panel is
+  acknowledged with “Got it”; camera controls must remain available during this lock.
 - Snapshot prevention when a disaster starts. A player cannot turn on
   protection retroactively; related controls lock after its disaster fires.
 - Triggered effects and damage remain until `resetHouse()`. Reset clears damage

@@ -13,6 +13,7 @@ const ROOF_BASE = 3.13
 const ROOF_RISE = 1.45
 const ROOF_SLOPE = Math.atan(ROOF_RISE / ROOF_RUN)
 const IMPACT_CYCLE = 1.55
+const ACCUMULATION_TIME = 5.6
 
 const roofHeight = (x) =>
   ROOF_BASE + ROOF_RISE * (1 - Math.min(ROOF_RUN, Math.abs(x)) / ROOF_RUN) + 0.16
@@ -27,6 +28,134 @@ const IMPACTS = Array.from({ length: 14 }, (_, i) => {
     radius: 0.18 + (i % 4) * 0.035,
   }
 })
+
+// Settled hail sits in the clear bands around the foundation. Keeping it on the
+// flat part of the terrain makes the layer feel attached to the yard instead of
+// floating over the decorative hills farther out.
+const GROUND_HAIL = Array.from({ length: 360 }, (_, i) => {
+  const band = i % 4
+  const offset = ((i * 47) % 100) / 100 - 0.5
+  const depth = ((i * 29) % 100) / 100
+  let x
+  let z
+  if (band === 0) {
+    x = offset * 6.6
+    z = 2.5 + depth * 2.4
+  } else if (band === 1) {
+    x = offset * 6.6
+    z = -2.5 - depth * 1.65
+  } else {
+    x = (band === 2 ? -1 : 1) * (3.05 + depth * 1.6)
+    z = offset * 5.25
+  }
+  return {
+    x,
+    z,
+    y: 0.09 + (i % 3) * 0.018,
+    scale: 0.07 + (i % 8) * 0.019,
+    rotation: (i * 0.73) % Math.PI,
+    reveal: ((i * 37) % 100) / 100,
+  }
+})
+
+// A handful of larger low-poly drifts make the later stage read as actual
+// pileup, rather than merely a carpet of individual stones.
+const HAIL_DRIFTS = [
+  { position: [-2.35, 2.62], scale: [0.88, 0.22, 0.5], delay: 0.18 },
+  { position: [-0.72, 2.72], scale: [1.06, 0.26, 0.58], delay: 0.34 },
+  { position: [1.1, 2.62], scale: [0.92, 0.24, 0.52], delay: 0.5 },
+  { position: [2.72, 2.76], scale: [0.68, 0.18, 0.46], delay: 0.66 },
+  { position: [-3.18, -1.22], scale: [0.52, 0.19, 0.92], delay: 0.82 },
+  { position: [3.2, -0.32], scale: [0.54, 0.2, 1.02], delay: 1.02 },
+  { position: [-2.1, -2.58], scale: [0.84, 0.2, 0.42], delay: 1.2 },
+  { position: [0.05, -2.64], scale: [1.1, 0.27, 0.48], delay: 1.4 },
+  { position: [2.12, -2.56], scale: [0.8, 0.21, 0.42], delay: 1.62 },
+]
+
+function HailDrifts({ reduced, progress }) {
+  const refs = useRef([])
+  const count = reduced ? 3 : HAIL_DRIFTS.length
+
+  useFrame(() => {
+    refs.current.forEach((drift, index) => {
+      if (!drift) return
+      const data = HAIL_DRIFTS[index]
+      const localProgress = THREE.MathUtils.clamp((progress.current - data.delay * 0.18) / 0.7, 0, 1)
+      const [x, y, z] = data.scale
+      drift.visible = index < count && localProgress > 0
+      drift.position.y = y * localProgress
+      drift.scale.set(
+        x * localProgress,
+        y * localProgress,
+        z * localProgress
+      )
+    })
+  })
+
+  return (
+    <group>
+      {HAIL_DRIFTS.map((drift, index) => (
+        <mesh
+          key={index}
+          ref={(element) => (refs.current[index] = element)}
+          position={[drift.position[0], 0, drift.position[1]]}
+          castShadow
+          receiveShadow
+        >
+          <dodecahedronGeometry args={[1, 1]} />
+          <meshStandardMaterial
+            color={reduced ? '#d8e8ed' : '#f1fbff'}
+            emissive="#b5ddec"
+            emissiveIntensity={reduced ? 0.06 : 0.13}
+            roughness={0.38}
+            flatShading
+          />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+function GroundAccumulation({ reduced }) {
+  const meshRef = useRef()
+  const ageRef = useRef(0)
+  const progressRef = useRef(0)
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  const count = reduced ? 84 : GROUND_HAIL.length
+
+  useFrame((_, delta) => {
+    ageRef.current += delta
+    const progress = Math.min(1, ageRef.current / ACCUMULATION_TIME)
+    progressRef.current = progress
+    GROUND_HAIL.forEach((hail, index) => {
+      const reveal = THREE.MathUtils.clamp((progress - hail.reveal * 0.72) / 0.28, 0, 1)
+      const visible = index < count
+      const scale = visible ? hail.scale * reveal * (reduced ? 0.82 : 1) : 0.001
+      dummy.position.set(hail.x, hail.y, hail.z)
+      dummy.rotation.set(0, hail.rotation, index * 0.31)
+      dummy.scale.set(scale * 1.15, scale * 0.58, scale)
+      dummy.updateMatrix()
+      meshRef.current.setMatrixAt(index, dummy.matrix)
+    })
+    meshRef.current.instanceMatrix.needsUpdate = true
+  })
+
+  return (
+    <group>
+      <HailDrifts reduced={reduced} progress={progressRef} />
+      <instancedMesh ref={meshRef} args={[null, null, GROUND_HAIL.length]} castShadow receiveShadow>
+        <dodecahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial
+          color={reduced ? '#d6e8ef' : '#edf9ff'}
+          emissive="#a7d8ed"
+          emissiveIntensity={reduced ? 0.08 : 0.16}
+          roughness={0.3}
+          flatShading
+        />
+      </instancedMesh>
+    </group>
+  )
+}
 
 /**
  * Heavy authored hailstorm: dense varied stones establish the weather while a
@@ -115,6 +244,8 @@ export default function Hail() {
 
   return (
     <group>
+      <GroundAccumulation reduced={protectedByRoof} />
+
       <instancedMesh ref={meshRef} args={[null, null, COUNT]} castShadow>
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial

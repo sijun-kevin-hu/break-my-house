@@ -11,9 +11,16 @@ import * as THREE from 'three'
  * Source: https://poly.pizza/bundle/Ultimate-House-Interior-Pack-2SXnFbwFzm
  * Author: Quaternius — CC0 1.0.
  */
-export default function InteriorModel({ asset, burnActive = false, burnStrength = 1, ...props }) {
+export default function InteriorModel({
+  asset,
+  burnActive = false,
+  burnStrength = 1,
+  burnDelay = 0,
+  ...props
+}) {
   const { scene } = useGLTF(asset)
   const burnProgress = useRef(0)
+  const burnAge = useRef(0)
   const { model, burnMaterials } = useMemo(() => {
     const clone = scene.clone(true)
     const materials = []
@@ -39,7 +46,8 @@ export default function InteriorModel({ asset, burnActive = false, burnStrength 
   }, [scene])
 
   useFrame((_, delta) => {
-    const target = burnActive ? burnStrength : 0
+    burnAge.current = burnActive ? burnAge.current + delta : 0
+    const target = burnActive && burnAge.current >= burnDelay ? burnStrength : 0
     burnProgress.current = THREE.MathUtils.damp(
       burnProgress.current,
       target,

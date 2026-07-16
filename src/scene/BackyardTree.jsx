@@ -100,8 +100,12 @@ function ImpactBurst({ reduced }) {
 export default function BackyardTree() {
   const triggered = useGameStore((s) => !!s.triggered.tree)
   const removed = useGameStore((s) => !!s.preventions.removeTree)
+  const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
   const trigger = useGameStore((s) => s.triggerDisaster)
-  const { hovered, bind } = useClickable(() => trigger('tree'), triggered)
+  const { hovered, bind } = useClickable(
+    () => trigger('tree'),
+    triggered || acknowledgementRequired
+  )
 
   const pivotRef = useRef()
   const canopyMats = useRef([])

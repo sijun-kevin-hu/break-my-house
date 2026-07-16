@@ -23,10 +23,10 @@ technical convention or invariant changes.
 | Low-poly 3D house and orbit camera | Done | Mouse orbit and zoom; pan disabled. Keyboard orbit uses WASD/arrow keys and zoom uses Q/E, -/+, or numpad -/+. |
 | Sims-style cutaway | Done | Near walls fade out; the roof also fades when the view opens the dollhouse, keeping the furnished interior legible. |
 | Furnished interior | Done | Quaternius GLB props supply kitchen, living, dining, storage, lamps, and plants while the custom shell owns cutaway and damage behavior. |
-| Hailstorm | Done | Dense deterministic hail, roof strike flashes/chips, impact light/shake, and persistent full vs. reduced roof damage. |
-| Kitchen fire | Done | Stove-origin fire, smoke, sparks, light, burn/scorch progression, and visibly reduced spread with prevention. |
+| Hailstorm | Partial | Dense deterministic hail, roof strike flashes/chips, smoothly staggered roof dents/color damage, growing ground accumulation that becomes visible drifts, impact light/shake, and persistent full vs. reduced damage. Production build passes; the expanded animation and pileup still need manual visual verification. |
+| Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and storage targets; it leaves a dense, staged trail of overlapping floor char, while prevention keeps the spectacle and damage contained. Production build passes; the expanded char path still needs manual visual verification. |
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
-| Object-triggered disasters | Done | Roof → hail, stove → fire, tree/stump → tree risk. Toolbar contains prevention controls and reset only. |
+| Object-triggered disasters | Done | Roof → hail, stove → fire, tree/stump → tree risk. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. |
 | Discoverable interactions | Done | Live triggers use hover highlights/idle affordance and a pointer cursor; fired triggers stop reading as interactive. |
 | Insurance information panel | Done | Appears shortly after the event's key beat; shows coverage, typical cost, and prevention guidance. |
 | Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
@@ -44,16 +44,19 @@ additional disasters, and mobile layout.
   a camera constrained for reliable demos.
 - Roof, stove, and backyard tree are the only disaster triggers. Controls are
   discoverable and stop responding once their event has fired.
-- Hail leaves roof dents, damaged shingle edges, and a darker roof state;
+- Hail resolves roof dents and darkening in a smooth staggered sequence, then
+  leaves damaged shingle edges, a growing ring of settled ice, and visible
+  low-poly drifts around the house;
   impact-resistant roofing leaves a much smaller visual aftermath.
-- Fire has a staged burst, flickering flames, smoke, sparks, an orange light,
-  localized wall/floor scorch, and damage to nearby interior pieces. Smoke
-  detectors plus an extinguisher make the event smaller and stop its wider
-  spread.
+- Fire has a staged burst that moves from the stove through the counter, TV,
+  fridge, living area, dining nook, and storage, with flickering flames, smoke,
+  sparks, light, a dense overlapping trail of floor char, wall scorch, and timed object
+  charring. Smoke detectors plus an extinguisher keep it at the stove and stop
+  its wider spread.
 - The fallen tree has an anticipatory windup, a contact-timed shake/debris
   burst, persistent roof hole, broken edges, and hanging interior ceiling
   aftermath. Removing the identified hazardous tree creates a stump instead.
-- Each completed event opens a panel with coverage, cost, and a prevention tip.
+- Each completed event opens a panel with coverage, cost, and a prevention tip. Its high-contrast, pulsing “Got it” button must be acknowledged before another disaster can be selected; camera orbit and zoom remain available in the meantime.
   A reduced outcome gets a “Prevention paid off!” badge; a prevented tree event
   gets “Risk eliminated!” and a $0 outcome.
 
@@ -120,6 +123,8 @@ src/
   missing/mismatched audio files listed above.
 - [ ] Click roof, observe hail and damage, then reset and repeat with
   impact-resistant roofing; verify both visual damage and panel cost shrink.
+- [ ] Trigger any disaster and, before pressing “Got it,” verify the other
+  disaster objects cannot be selected but mouse and keyboard camera movement still work; then acknowledge the panel and verify another unfired object can trigger.
 - [ ] Click stove, repeat with smoke detectors + extinguisher; verify fire
   spread and panel cost shrink.
 - [ ] Click tree, repeat after removing the hazardous tree; verify stump,
