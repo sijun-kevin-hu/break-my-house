@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { useClickable } from './useClickable'
+import InteriorModel from './InteriorModel'
 
 /**
  * Placeholder cartoon house from primitives so the loop works day one.
@@ -565,20 +566,11 @@ function Stove() {
   })
 
   return (
-    <group position={[-1.4, 0, -1.0]} {...bind}>
-      {/* Counter body */}
-      <mesh position={[0, 0.55, 0]} castShadow>
-        <boxGeometry args={[1.0, 0.9, 0.7]} />
-        <meshStandardMaterial color="#e8e2d5" flatShading />
-      </mesh>
-      {/* Stove top */}
-      <mesh position={[0, 1.02, 0]} castShadow>
-        <boxGeometry args={[0.7, 0.06, 0.6]} />
-        <meshStandardMaterial color="#2f2f33" flatShading />
-      </mesh>
-      {/* Burners */}
+    <group position={[-1.78, 0, -1.45]} {...bind}>
+      {/* Quaternius oven; the glowing burner discs preserve the fire affordance. */}
+      <InteriorModel asset="/models/house-interior/Oven.glb" scale={0.75} />
       {burners.map(([dx, dz], i) => (
-        <mesh key={i} position={[dx, 1.06, dz]}>
+        <mesh key={i} position={[dx, 1.22, dz]}>
           <cylinderGeometry args={[0.09, 0.09, 0.02, 16]} />
           <meshStandardMaterial
             ref={(el) => (burnerMats.current[i] = el)}
@@ -592,69 +584,114 @@ function Stove() {
   )
 }
 
+/** A compact TV console faces the sofa, making the living zone read instantly. */
+function Television() {
+  return (
+    <group position={[-1.15, 0, -0.78]}>
+      {/* Low media console */}
+      <mesh position={[0, 0.28, 0]} castShadow>
+        <boxGeometry args={[1.4, 0.48, 0.38]} />
+        <meshStandardMaterial color="#6b4a2f" flatShading />
+      </mesh>
+      <mesh position={[0, 0.28, 0.21]} castShadow>
+        <boxGeometry args={[0.82, 0.22, 0.03]} />
+        <meshStandardMaterial color="#4b3221" flatShading />
+      </mesh>
+
+      {/* Warm wood frame, charcoal bezel, and a faintly lit blue screen. */}
+      <mesh position={[0, 0.95, -0.04]} castShadow>
+        <boxGeometry args={[1.28, 0.82, 0.1]} />
+        <meshStandardMaterial color="#493328" flatShading />
+      </mesh>
+      <mesh position={[0, 0.95, 0.02]}>
+        <boxGeometry args={[1.12, 0.66, 0.035]} />
+        <meshStandardMaterial
+          color="#172a3a"
+          emissive="#22465c"
+          emissiveIntensity={0.28}
+          roughness={0.35}
+        />
+      </mesh>
+      {[-0.42, 0.42].map((x) => (
+        <mesh key={x} position={[x, 0.08, 0]} castShadow>
+          <boxGeometry args={[0.08, 0.26, 0.25]} />
+          <meshStandardMaterial color="#4b3221" flatShading />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 /**
- * Interior props so the cutaway reveals a real home. Kept as simple primitives.
- * The stove (kitchen corner, back-left) is where the fire disaster reads from.
+ * A mix of bespoke interaction geometry and Quaternius CC0 GLB props. The
+ * house shell stays custom because it owns the cutaway and damage behavior;
+ * authored props make the revealed interior feel more lived-in.
  */
 function Furniture() {
   return (
     <group>
+      {/* Kitchen run: stove, sink, and fridge line the back wall at a shared height. */}
       <Stove />
+      <InteriorModel
+        asset="/models/house-interior/Kitchen Sink.glb"
+        position={[-0.45, 0, -1.45]}
+        scale={0.62}
+      />
+      <InteriorModel
+        asset="/models/house-interior/Kitchen Fridge.glb"
+        position={[1.75, 0, -1.45]}
+        scale={0.55}
+      />
 
-      {/* Fridge — back-right corner */}
-      <mesh position={[1.4, 0.75, -1.05]} castShadow>
-        <boxGeometry args={[0.8, 1.5, 0.7]} />
-        <meshStandardMaterial color="#dfe3e6" flatShading />
-      </mesh>
+      {/* Living area: compact sofa faces the coffee table and the open room. */}
+      <InteriorModel
+        asset="/models/house-interior/Couch Small-X9msj0gtb5.glb"
+        position={[-1.15, 0, 1.1]}
+        scale={0.55}
+      />
+      <InteriorModel
+        asset="/models/house-interior/Table Round Small.glb"
+        position={[-1.15, 0.02, 0.05]}
+        scale={0.43}
+      />
+      <InteriorModel asset="/models/house-interior/Lamp.glb" position={[-2.3, 0, 0.7]} scale={1.3} />
+      <Television />
 
-      {/* Couch — front-left, on the rug (base, back, arms) */}
-      <group position={[-0.6, 0, 0.4]}>
-        <mesh position={[0, 0.3, 0]} castShadow>
-          <boxGeometry args={[1.5, 0.4, 0.7]} />
-          <meshStandardMaterial color="#4f6d5b" flatShading />
-        </mesh>
-        <mesh position={[0, 0.6, -0.28]} castShadow>
-          <boxGeometry args={[1.5, 0.6, 0.15]} />
-          <meshStandardMaterial color="#59795f" flatShading />
-        </mesh>
-        {[-0.72, 0.72].map((ax) => (
-          <mesh key={ax} position={[ax, 0.42, 0]} castShadow>
-            <boxGeometry args={[0.16, 0.5, 0.7]} />
-            <meshStandardMaterial color="#59795f" flatShading />
-          </mesh>
-        ))}
-      </group>
+      {/* Dining nook: two chairs make the round table read as intentional. */}
+      <InteriorModel
+        asset="/models/house-interior/Table Round Small.glb"
+        position={[1.25, 0.02, 0.55]}
+        scale={0.48}
+      />
+      <InteriorModel
+        asset="/models/house-interior/Chair.glb"
+        position={[1.25, 0, 1.45]}
+        rotation={[0, Math.PI, 0]}
+        scale={0.45}
+      />
+      <InteriorModel
+        asset="/models/house-interior/Chair.glb"
+        position={[1.25, 0, -0.35]}
+        scale={0.45}
+      />
+      <InteriorModel
+        asset="/models/house-interior/Houseplant.glb"
+        position={[1.25, 0.58, 0.55]}
+        scale={0.75}
+      />
 
-      {/* Coffee table with legs */}
-      <group position={[-0.6, 0, 1.0]}>
-        <mesh position={[0, 0.35, 0]} castShadow>
-          <boxGeometry args={[0.9, 0.1, 0.5]} />
-          <meshStandardMaterial color="#6b4a2f" flatShading />
-        </mesh>
-        {[
-          [-0.38, 0.2],
-          [0.38, 0.2],
-          [-0.38, -0.2],
-          [0.38, -0.2],
-        ].map((p, i) => (
-          <mesh key={i} position={[p[0], 0.15, p[1]]} castShadow>
-            <boxGeometry args={[0.08, 0.3, 0.08]} />
-            <meshStandardMaterial color="#553a24" flatShading />
-          </mesh>
-        ))}
-      </group>
-
-      {/* Potted plant in the corner for a bit of life */}
-      <group position={[1.3, 0, 0.9]}>
-        <mesh position={[0, 0.2, 0]} castShadow>
-          <cylinderGeometry args={[0.16, 0.12, 0.4, 6]} />
-          <meshStandardMaterial color="#b5623f" flatShading />
-        </mesh>
-        <mesh position={[0, 0.55, 0]} castShadow>
-          <icosahedronGeometry args={[0.3, 0]} />
-          <meshStandardMaterial color="#4a9b4e" flatShading />
-        </mesh>
-      </group>
+      {/* Tall storage and plant life give the exposed side of the house depth. */}
+      <InteriorModel
+        asset="/models/house-interior/Shelf Large.glb"
+        position={[2.55, 0, -0.15]}
+        rotation={[0, Math.PI / 2, 0]}
+        scale={0.36}
+      />
+      <InteriorModel
+        asset="/models/house-interior/Houseplant-VtJh4Irl4w.glb"
+        position={[2.1, 0, 1.25]}
+        scale={1.15}
+      />
     </group>
   )
 }

@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 
 // Anchored at the kitchen stove (back-left corner) so the fire reads as coming
 // straight off the burners the player clicked.
-const STOVE = [-1.4, -1.0] // [x, z]
+const STOVE = [-1.78, -1.45] // [x, z]
 const FLAME_POS = [
   [STOVE[0], 1.35, STOVE[1]],
   [STOVE[0] - 0.18, 1.45, STOVE[1] + 0.12],

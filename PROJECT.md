@@ -20,7 +20,7 @@ Interactive 3D cartoon risk-education game/simulation. Summon disasters on a hou
 - [x] Home Risk Score (improves as preventions applied)
 - [x] Reset house button (critical for repeat demos)
 - [ ] Sound effects (hail patter, fire crackle, tree crash) — freesound.org
-- [ ] Replace primitive house with low-poly GLB (Kenney.nl / Quaternius)
+- [x] Add selected low-poly GLB interior props (Quaternius) while retaining the custom interactive house shell
 - [ ] Title/intro screen polish
 
 **Explicitly out of scope:** physics, LLM NPC, walking character, more than 3 disasters, mobile.
@@ -38,7 +38,7 @@ Interactive 3D cartoon risk-education game/simulation. Summon disasters on a hou
 
 ## Current functionality
 
-- **Idle scene:** low-poly primitive house, yard, bushes, sky, shadows, orbit camera (pan disabled, angle clamped)
+- **Idle scene:** custom low-poly house with Quaternius GLB interior props, yard, bushes, sky, shadows, orbit camera (pan disabled, angle clamped)
 - **Sims-style cutaway** *(to build):* geometry between the camera and the interior fades/hides so the furnished inside stays visible from any orbit angle
 - **Object-click triggering** *(to build):* clicking a scene object fires its disaster — roof → hail, stove → fire, backyard tree → fall; hover highlight tells the player what's clickable
 - **Hail:** 250 instanced hailstones fall over the yard for 4s; roof darkens/dents after
@@ -103,7 +103,7 @@ Node 18+. Stack: Vite, React 18, @react-three/fiber, @react-three/drei, Zustand.
 
 ## Asset shopping list (pre-hackday)
 
-- [ ] Low-poly house GLB — Kenney.nl "Holiday Kit" or Quaternius "Buildings"
+- [x] Quaternius CC0 GLB interior props — kitchen set, living-room set, dining nook, storage, lamps, and plants
 - [ ] Sounds: hail patter, fire crackle, wood crash, success chime — freesound.org (CC0)
 - [ ] Optional: cartoon font (e.g., Fredoka via Google Fonts)
 
