@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
@@ -101,10 +101,24 @@ function Roof({ color, wallColor }) {
   const gableMatRefs = useRef([])
   const chimneyRef = useRef()
   const chimneyMatRef = useRef()
+  const treeDamageMeshRefs = useRef([])
+  const treeDamageMatRefs = useRef([])
 
   const triggered = useGameStore((s) => !!s.triggered.hail)
+  const treeTriggered = useGameStore((s) => !!s.triggered.tree)
+  const treePrevented = useGameStore((s) => !!s.preventions.tree)
   const trigger = useGameStore((s) => s.triggerDisaster)
   const { hovered, bind } = useClickable(() => trigger('hail'), triggered)
+  const [treeImpactVisible, setTreeImpactVisible] = useState(false)
+
+  useEffect(() => {
+    if (!treeTriggered) {
+      setTreeImpactVisible(false)
+      return undefined
+    }
+    const timer = setTimeout(() => setTreeImpactVisible(true), 520)
+    return () => clearTimeout(timer)
+  }, [treeTriggered])
 
   useFrame(({ camera }) => {
     const roofMats = roofMatRefs.current
@@ -141,10 +155,18 @@ function Roof({ color, wallColor }) {
       mat.opacity = roofMats[0].opacity
     })
     chimneyMat.opacity = roofMats[0].opacity // chimney tracks the roof exactly
+    treeDamageMatRefs.current.forEach((mat) => {
+      if (mat) mat.opacity = roofMats[0].opacity
+    })
     // Shadows ignore material opacity, so kill the cast shadow once faded or the
     // interior stays darkened by a phantom roof.
     const solid = roofMats[0].opacity > 0.5
-    const roofPieces = [...roofRefs.current, ...gableRefs.current, chimneyRef.current]
+    const roofPieces = [
+      ...roofRefs.current,
+      ...gableRefs.current,
+      chimneyRef.current,
+      ...treeDamageMeshRefs.current,
+    ]
     roofPieces.forEach((piece) => {
       if (!piece) return
       piece.castShadow = solid
@@ -222,6 +244,78 @@ function Roof({ color, wallColor }) {
         <boxGeometry args={[0.5, 1.2, 0.5]} />
         <meshStandardMaterial ref={chimneyMatRef} color="#8f5b4a" flatShading transparent opacity={1} />
       </mesh>
+
+      {treeImpactVisible && (
+        <group>
+          {/* A dark, crooked replacement patch sells a localized cave-in while
+              leaving the reliable primitive roof mesh intact underneath. */}
+          <mesh
+            ref={(el) => (treeDamageMeshRefs.current[0] = el)}
+            position={[-1.12, 4.06, -1.18]}
+            rotation={[0.04, -0.08, ROOF_SLOPE + (treePrevented ? 0.04 : 0.2)]}
+            castShadow
+          >
+            <boxGeometry args={treePrevented ? [0.72, 0.1, 0.72] : [1.42, 0.14, 1.32]} />
+            <meshStandardMaterial
+              ref={(el) => (treeDamageMatRefs.current[0] = el)}
+              color={treePrevented ? '#9c4437' : '#392d2a'}
+              flatShading
+              transparent
+              opacity={1}
+            />
+          </mesh>
+
+          {!treePrevented && (
+            <>
+              <mesh
+                ref={(el) => (treeDamageMeshRefs.current[1] = el)}
+                position={[-0.92, 4.18, -1.18]}
+                rotation={[0.1, 0.18, ROOF_SLOPE - 0.32]}
+                castShadow
+              >
+                <boxGeometry args={[0.18, 0.16, 1.6]} />
+                <meshStandardMaterial
+                  ref={(el) => (treeDamageMatRefs.current[1] = el)}
+                  color="#b47b4d"
+                  flatShading
+                  transparent
+                  opacity={1}
+                />
+              </mesh>
+              <mesh
+                ref={(el) => (treeDamageMeshRefs.current[2] = el)}
+                position={[-1.42, 3.98, -0.94]}
+                rotation={[-0.05, -0.35, ROOF_SLOPE + 0.45]}
+                castShadow
+              >
+                <boxGeometry args={[0.5, 0.11, 0.42]} />
+                <meshStandardMaterial
+                  ref={(el) => (treeDamageMatRefs.current[2] = el)}
+                  color="#6f342c"
+                  flatShading
+                  transparent
+                  opacity={1}
+                />
+              </mesh>
+              <mesh
+                ref={(el) => (treeDamageMeshRefs.current[3] = el)}
+                position={[-0.6, 4.33, -1.45]}
+                rotation={[0.12, 0.3, ROOF_SLOPE - 0.18]}
+                castShadow
+              >
+                <boxGeometry args={[0.42, 0.1, 0.58]} />
+                <meshStandardMaterial
+                  ref={(el) => (treeDamageMatRefs.current[3] = el)}
+                  color="#7d382e"
+                  flatShading
+                  transparent
+                  opacity={1}
+                />
+              </mesh>
+            </>
+          )}
+        </group>
+      )}
     </group>
   )
 }

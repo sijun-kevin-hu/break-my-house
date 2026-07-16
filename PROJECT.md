@@ -1,6 +1,6 @@
 # Break My House 🏠🌪️
 
-Interactive 3D cartoon risk-education game. Summon disasters on a house, see what insurance coverage applies, and learn how prevention changes the outcome.
+Interactive 3D cartoon risk-education game/simulation. Summon disasters on a house, see what insurance coverage applies, and learn how prevention changes the outcome.
 
 **Hackday pitch:** insurance education that people actually want to play with — works for customer education, new-agent training, and community outreach.
 
