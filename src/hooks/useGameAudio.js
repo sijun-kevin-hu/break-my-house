@@ -14,7 +14,7 @@ export default function useGameAudio() {
     volume: 0.65,
   });
 
-  const treeSound = useSound("/audio/tree-crash.mp3", {
+  const treeSound = useSound("/audio/tree.mp3", {
     volume: 0.8,
   });
 
