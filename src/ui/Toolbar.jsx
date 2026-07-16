@@ -8,6 +8,7 @@ import { PREVENTIONS } from '../data/disasters'
  */
 export default function Toolbar() {
   const preventions = useGameStore((s) => s.preventions)
+  const triggered = useGameStore((s) => s.triggered)
   const togglePrevention = useGameStore((s) => s.togglePrevention)
   const resetHouse = useGameStore((s) => s.resetHouse)
 
@@ -15,7 +16,7 @@ export default function Toolbar() {
     <div className="toolbar">
       <p className="toolbar-hint">
         🖱️ Click the <strong>roof</strong>, <strong>stove</strong>, or{' '}
-        <strong>tree</strong> to unleash a disaster.
+        <strong>{preventions.removeTree ? 'stump' : 'tree'}</strong> to test a disaster.
       </p>
 
       <div className="prevention-list">
@@ -24,6 +25,7 @@ export default function Toolbar() {
             <input
               type="checkbox"
               checked={!!preventions[prevention.id]}
+              disabled={!!triggered[prevention.disasterId]}
               onChange={() => togglePrevention(prevention.id)}
             />
             <span className="prevention-emoji">{prevention.emoji}</span>

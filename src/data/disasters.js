@@ -36,30 +36,34 @@ export const DISASTERS = {
   tree: {
     id: 'tree',
     label: 'Fallen Tree',
+    preventedLabel: 'Tree Risk Removed',
     emoji: '🌳',
     effectDuration: 4000,
+    preventedDuration: 650,
     riskWeight: 20,
     whatHappened: 'A storm dropped the backyard oak straight onto the roofline.',
+    whatPrevented:
+      'The hazardous oak was removed before the storm, leaving nothing close enough to strike the house.',
     coverage: 'Homeowners policy — dwelling coverage (falling object peril).',
+    coveragePrevented: 'No property damage occurred, so no insurance claim was needed.',
     avgCost: '$9,000 average fallen-tree claim',
-    avgCostReduced: '$1,000 with trimming or reinforced roof framing',
-    prevention: 'Trim overhanging branches',
-    preventionIds: ['tree', 'roofStructure'],
+    avgCostPrevented: '$0 in tree-impact damage',
+    prevention: 'Remove hazardous tree',
+    preventionIds: ['removeTree'],
+    preventionOutcomes: { removeTree: 'prevented' },
     preventionTip:
-      'Trees within falling distance should be inspected yearly. Trimming lowers the strike risk; reinforced framing limits roof damage if one still falls.',
+      'A qualified arborist can identify trees that are dead, unstable, or too close to the home. Removing a confirmed hazard eliminates that specific strike risk.',
   },
 }
 
 export const DISASTER_LIST = Object.values(DISASTERS)
 
 /**
- * Prevention controls are intentionally separate from disasters: a structural
- * roof upgrade can mitigate a falling tree without suggesting hail-resistant
- * shingles protect against a heavy trunk.
+ * Prevention controls are intentionally separate from disasters so each one
+ * can declare which event it locks and mitigates.
  */
 export const PREVENTIONS = [
-  { id: 'hail', emoji: '🌨️', label: 'Impact-resistant roofing' },
-  { id: 'fire', emoji: '🔥', label: 'Smoke detectors + extinguisher' },
-  { id: 'tree', emoji: '🌳', label: 'Trim overhanging branches' },
-  { id: 'roofStructure', emoji: '🏗️', label: 'Reinforced roof framing' },
+  { id: 'hail', disasterId: 'hail', emoji: '🌨️', label: 'Impact-resistant roofing' },
+  { id: 'fire', disasterId: 'fire', emoji: '🔥', label: 'Smoke detectors + extinguisher' },
+  { id: 'removeTree', disasterId: 'tree', emoji: '🪵', label: 'Remove hazardous tree' },
 ]

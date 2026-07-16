@@ -134,21 +134,19 @@ function Roof({ color, wallColor }) {
 
   const triggered = useGameStore((s) => !!s.triggered.hail)
   const treeTriggered = useGameStore((s) => !!s.triggered.tree)
-  const treePrevented = useGameStore(
-    (s) => !!s.preventions.tree || !!s.preventions.roofStructure
-  )
+  const treeRemoved = useGameStore((s) => !!s.preventions.removeTree)
   const trigger = useGameStore((s) => s.triggerDisaster)
   const { hovered, bind } = useClickable(() => trigger('hail'), triggered)
   const [treeImpactVisible, setTreeImpactVisible] = useState(false)
 
   useEffect(() => {
-    if (!treeTriggered) {
+    if (!treeTriggered || treeRemoved) {
       setTreeImpactVisible(false)
       return undefined
     }
     const timer = setTimeout(() => setTreeImpactVisible(true), 850)
     return () => clearTimeout(timer)
-  }, [treeTriggered])
+  }, [treeTriggered, treeRemoved])
 
   useFrame(({ camera }) => {
     const roofMats = roofMatRefs.current
@@ -227,7 +225,7 @@ function Roof({ color, wallColor }) {
             key={segment.id}
             ref={(el) => (roofRefs.current[index] = el)}
             position={segment.position}
-            visible={!segment.impact || !treeImpactVisible || treePrevented}
+            visible={!segment.impact || !treeImpactVisible || treeRemoved}
             castShadow
             {...bind}
           >
@@ -303,26 +301,25 @@ function Roof({ color, wallColor }) {
 
       {treeImpactVisible && (
         <group>
-          {/* The full-damage version sits below the missing roof segment as a
-              dark cavity. Prevention leaves the panel intact with a small dent. */}
+          {/* Dark cavity beneath the missing roof segment. Tree removal keeps
+              treeImpactVisible false, so this entire aftermath is skipped. */}
           <mesh
             ref={(el) => (treeDamageMeshRefs.current[0] = el)}
-            position={treePrevented ? [-1.12, 4.06, -1.18] : [-1.12, 3.84, -1.18]}
-            rotation={[0.04, -0.08, ROOF_SLOPE + (treePrevented ? 0.04 : 0)]}
+            position={[-1.12, 3.84, -1.18]}
+            rotation={[0.04, -0.08, ROOF_SLOPE]}
             castShadow
           >
-            <boxGeometry args={treePrevented ? [0.72, 0.1, 0.72] : [1.18, 0.05, 1.34]} />
+            <boxGeometry args={[1.18, 0.05, 1.34]} />
             <meshStandardMaterial
               ref={(el) => (treeDamageMatRefs.current[0] = el)}
-              color={treePrevented ? '#9c4437' : '#17191b'}
+              color="#17191b"
               flatShading
               transparent
               opacity={1}
             />
           </mesh>
 
-          {!treePrevented && (
-            <>
+          <>
               <mesh
                 ref={(el) => (treeDamageMeshRefs.current[1] = el)}
                 position={[-0.92, 4.18, -1.18]}
@@ -444,8 +441,7 @@ function Roof({ color, wallColor }) {
                   </mesh>
                 </group>
               </group>
-            </>
-          )}
+          </>
         </group>
       )}
     </group>

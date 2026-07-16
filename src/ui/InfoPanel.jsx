@@ -10,23 +10,29 @@ export default function InfoPanel() {
   if (!panelDisaster) return null
   const d = DISASTERS[panelDisaster]
   const reduced = damage[d.id] === 'reduced'
+  const prevented = damage[d.id] === 'prevented'
+  const mitigated = reduced || prevented
 
   return (
     <aside className="info-panel">
       <h2>
-        {d.emoji} {d.label}
+        {d.emoji} {prevented ? (d.preventedLabel ?? d.label) : d.label}
       </h2>
-      {reduced && <div className="badge-prevented">Prevention paid off!</div>}
+      {mitigated && (
+        <div className="badge-prevented">
+          {prevented ? 'Risk eliminated!' : 'Prevention paid off!'}
+        </div>
+      )}
 
       <h3>What happened</h3>
-      <p>{d.whatHappened}</p>
+      <p>{prevented ? (d.whatPrevented ?? d.whatHappened) : d.whatHappened}</p>
 
       <h3>What coverage applies</h3>
-      <p>{d.coverage}</p>
+      <p>{prevented ? (d.coveragePrevented ?? d.coverage) : d.coverage}</p>
 
       <h3>Typical cost</h3>
-      <p className={reduced ? 'cost-reduced' : 'cost-full'}>
-        {reduced ? d.avgCostReduced : d.avgCost}
+      <p className={mitigated ? 'cost-reduced' : 'cost-full'}>
+        {prevented ? d.avgCostPrevented : reduced ? d.avgCostReduced : d.avgCost}
       </p>
 
       <h3>Prevention tip</h3>

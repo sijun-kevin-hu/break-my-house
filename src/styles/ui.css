@@ -118,6 +118,11 @@ body,
   white-space: nowrap;
 }
 
+.prevention-toggle:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .prevention-emoji { font-size: 1rem; }
 
 .reset-btn {

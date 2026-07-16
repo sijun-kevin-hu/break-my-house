@@ -1,8 +1,14 @@
 import { create } from 'zustand'
-import { DISASTERS } from '../data/disasters'
+import { DISASTERS, PREVENTIONS } from '../data/disasters'
 
-const isDisasterPrevented = (preventions, disasterId) =>
-  (DISASTERS[disasterId].preventionIds ?? [disasterId]).some((id) => !!preventions[id])
+const getDisasterOutcome = (preventions, disasterId) => {
+  const disaster = DISASTERS[disasterId]
+  const activePrevention = (disaster.preventionIds ?? [disasterId]).find(
+    (id) => !!preventions[id]
+  )
+  if (!activePrevention) return 'full'
+  return disaster.preventionOutcomes?.[activePrevention] ?? 'reduced'
+}
 
 /**
  * Single source of truth for game state.
@@ -12,7 +18,7 @@ const isDisasterPrevented = (preventions, disasterId) =>
  * stays — until the player hits "Reset house". Several can pile up at once.
  *
  *  - triggered:  { [id]: true } disasters that have fired and are still going
- *  - damage:     { [id]: 'full' | 'reduced' } damage applied to the house
+ *  - damage:     { [id]: 'full' | 'reduced' | 'prevented' } outcome applied
  *  - preventions:{ [id]: boolean } active prevention controls; a control can
  *                mitigate more than one damage path when explicitly mapped
  *  - impacts:    count of disasters still inside their initial "impact" window,
@@ -28,6 +34,9 @@ export const useGameStore = create((set, get) => ({
 
   triggerDisaster: (id) => {
     if (get().triggered[id]) return // already going — ignore repeat clicks
+    // Snapshot the outcome before the event starts. Related controls lock as
+    // soon as the event is triggered, preventing retroactive protection.
+    const outcome = getDisasterOutcome(get().preventions, id)
     set((s) => ({
       triggered: { ...s.triggered, [id]: true },
       impacts: s.impacts + 1,
@@ -36,22 +45,27 @@ export const useGameStore = create((set, get) => ({
 
     // After the initial impact plays out, lock in the damage state, surface the
     // info panel, and let the camera settle. The effect itself keeps running.
-    const duration = DISASTERS[id].effectDuration
+    const duration =
+      outcome === 'prevented'
+        ? (DISASTERS[id].preventedDuration ?? 650)
+        : DISASTERS[id].effectDuration
     setTimeout(() => {
       if (!get().triggered[id]) return // reset happened mid-impact
-      const prevented = isDisasterPrevented(get().preventions, id)
       set((s) => ({
         panelDisaster: id,
-        damage: { ...s.damage, [id]: prevented ? 'reduced' : 'full' },
+        damage: { ...s.damage, [id]: outcome },
         impacts: Math.max(0, s.impacts - 1),
       }))
     }, duration)
   },
 
-  togglePrevention: (id) =>
+  togglePrevention: (id) => {
+    const prevention = PREVENTIONS.find((option) => option.id === id)
+    if (prevention && get().triggered[prevention.disasterId]) return
     set((s) => ({
       preventions: { ...s.preventions, [id]: !s.preventions[id] },
-    })),
+    }))
+  },
 
   closePanel: () => set({ panelDisaster: null }),
 
@@ -62,7 +76,7 @@ export const useGameStore = create((set, get) => ({
   riskScore: () => {
     const { preventions } = get()
     return Object.values(DISASTERS).reduce(
-      (score, d) => score - (isDisasterPrevented(preventions, d.id) ? 0 : d.riskWeight),
+      (score, d) => score - (getDisasterOutcome(preventions, d.id) === 'full' ? d.riskWeight : 0),
       100
     )
   },

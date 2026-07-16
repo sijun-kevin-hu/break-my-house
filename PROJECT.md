@@ -59,13 +59,12 @@ control teaches a specific mitigation and visibly changes the outcome.
 |---|---|---|
 | Impact-resistant roofing | Hailstorm | Reduced roof dents/scuffs and lower hail claim cost. |
 | Smoke detectors + extinguisher | Kitchen fire | Reduced fire damage and lower fire claim cost. |
-| Trim overhanging branches | Fallen tree | Reduced tree-impact damage and lower tree claim cost. |
-| Reinforced roof framing | Fallen tree | Reduced tree-impact damage and lower tree claim cost. |
+| Remove hazardous tree | Fallen tree | Eliminates that specific strike risk and avoids a tree-impact claim. |
 
-For a fallen tree, either trimming or reinforced roof framing produces the
-reduced outcome; they do not stack yet. Impact-resistant shingles are
-intentionally hail-only — they do not stop a heavy falling tree. Preventive
-state is retained when the house is reset so players can compare outcomes.
+Removing the confirmed hazardous tree replaces it with a stump and fully
+prevents that specific strike. Impact-resistant shingles remain intentionally
+hail-only. Preventive state is retained when the house is reset so players can
+compare outcomes.
 
 ## Visual direction
 
@@ -129,7 +128,7 @@ Node 18+. Stack: Vite, React 18, @react-three/fiber, @react-three/drei, Zustand.
 1. Open on idle house — orbit once so the cutaway reveals the furnished interior; let the charm land
 2. "Let's see what a bad day looks like" → **click the roof** → hail → panel appears → walk through coverage/cost
 3. Toggle **impact-resistant roofing** → reset → click the roof again → reduced cost + badge → "prevention is the story"
-4. Toggle **reinforced roof framing** or **trim overhanging branches** → reset → click the tree → compare the smaller aftermath
+4. Toggle **remove hazardous tree** → reset → click the stump → confirm that the strike and claim were eliminated
 5. Rapid-fire: **click the stove** (fire) and **click the tree** (fall) for spectacle
 6. Point at risk score → close on audiences: customers, new agents, community events
 7. Always end on **Reset house** so it's ready for judge walk-ups

@@ -11,8 +11,7 @@ agents, and community outreach — not to simulate real-world physics.
 
 - **Impact-resistant roofing** reduces hail damage only.
 - **Smoke detectors + extinguisher** reduce kitchen-fire damage.
-- **Trim overhanging branches** or **reinforced roof framing** reduce
-  fallen-tree damage. These two protections do not stack yet.
+- **Remove hazardous tree** eliminates that specific falling-tree risk.
 
 See **PROJECT.md** for the detailed prevention logic, requirements, progress,
 and architecture.
