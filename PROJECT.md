@@ -1,134 +1,150 @@
 # Break My House 🏠🌪️
 
-Interactive 3D cartoon risk-education game/simulation. Summon disasters on a house, see what insurance coverage applies, and learn how prevention changes the outcome.
+Interactive low-poly 3D insurance-risk education game. Players trigger a
+disaster on the house, see coverage and a typical claim cost, then compare the
+outcome with prevention enabled.
 
-**Hackday pitch:** insurance education that people actually want to play with — works for customer education, new-agent training, and community outreach.
+**Hackday pitch:** insurance education that people actually want to play with —
+for customer education, new-agent training, and community outreach.
 
----
+See `AGENTS.md` for implementation conventions and durable engineering context.
 
-## Requirements (12-hour scope — LOCKED)
+## Project maintenance
 
-- [x] 3D cartoon house scene with orbit camera
-- [ ] **Sims-style cutaway** — see inside the house: walls/roof between the camera and the interior fade or hide so rooms, furniture, and interior objects are always visible as the camera orbits
-- [ ] **Furnished interior** — enough props (roof, kitchen stove, backyard tree, etc.) to host the disasters and read as a real home
-- [x] 3 disasters: hailstorm, kitchen fire, fallen tree
-- [ ] **Object-triggered disasters** — disasters fire by clicking the relevant object in the scene, not UI buttons (click the roof → hail, click the stove → fire, click the tree → it falls)
-- [ ] Clickable objects are discoverable — hover highlight / cursor change / subtle idle affordance so the player knows what's interactive
-- [x] Disaster → animation → damage state → info panel loop
-- [x] Info panel: what happened / coverage / typical cost / prevention tip
-- [x] Prevention controls visibly reduce the relevant damage + cost shown
-- [x] Home Risk Score (improves as preventions applied)
-- [x] Reset house button (critical for repeat demos)
-- [ ] Sound effects (hail patter, fire crackle, tree crash) — freesound.org
-- [x] Add selected low-poly GLB interior props (Quaternius) while retaining the custom interactive house shell
-- [ ] Title/intro screen polish
+Every agent starts by reading `AGENTS.md` and this file. Update this document
+in the same task whenever user-visible behavior, feature status, priorities,
+known gaps, or verification results change; update `AGENTS.md` when a durable
+technical convention or invariant changes.
 
-**Explicitly out of scope:** physics, LLM NPC, walking character, more than 3 disasters, mobile.
-**Note:** the toolbar no longer triggers disasters. Triggering is object-click only; the toolbar keeps only prevention toggles + Reset house.
+## Scope and feature status
 
-## Progress
-
-| Milestone | Target | Status |
+| Feature | Status | Acceptance / current behavior |
 |---|---|---|
-| H0–2: Scene + house + orbit controls | Hour 2 | ✅ Done (scaffold) |
-| H2–5: Hail end-to-end loop | Hour 5 | ✅ Done (scaffold) |
-| H5–7: Info panel + risk score + preventions | Hour 7 | ✅ Done (scaffold) |
-| H7–10: Fire + fallen tree | Hour 10 | ✅ Done (scaffold) |
-| H10–12: Sound, GLB assets, polish, demo runs | Hour 12 | 🔲 Not started |
+| Low-poly 3D house and orbit camera | Done | Mouse orbit and zoom; pan disabled. Keyboard orbit uses WASD/arrow keys and zoom uses Q/E, -/+, or numpad -/+. |
+| Sims-style cutaway | Done | Near walls fade out; the roof also fades when the view opens the dollhouse, keeping the furnished interior legible. |
+| Furnished interior | Done | Quaternius GLB props supply kitchen, living, dining, storage, lamps, and plants while the custom shell owns cutaway and damage behavior. |
+| Hailstorm | Done | Dense deterministic hail, roof strike flashes/chips, impact light/shake, and persistent full vs. reduced roof damage. |
+| Kitchen fire | Done | Stove-origin fire, smoke, sparks, light, burn/scorch progression, and visibly reduced spread with prevention. |
+| Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
+| Object-triggered disasters | Done | Roof → hail, stove → fire, tree/stump → tree risk. Toolbar contains prevention controls and reset only. |
+| Discoverable interactions | Done | Live triggers use hover highlights/idle affordance and a pointer cursor; fired triggers stop reading as interactive. |
+| Insurance information panel | Done | Appears shortly after the event's key beat; shows coverage, typical cost, and prevention guidance. |
+| Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
+| Reset for repeat demos | Done | Clears triggered disasters and damage while keeping prevention selections for easy comparison. |
+| Sound effects | Partial | Audio hook is connected, but the shipped audio directory currently contains only `fire.mp3` and `tree.mp3`; it still needs `hail.mp3`, `success.mp3`, and a filename match for `tree-crash.mp3`. |
+| Title/intro polish | Pending | Current title and instructional overlay work; add final visual polish only if time remains. |
 
-## Current functionality
+**Explicitly out of scope:** real-world physics, LLM NPCs, walking character,
+additional disasters, and mobile layout.
 
-- **Idle scene:** custom low-poly house with Quaternius GLB interior props, yard, bushes, sky, shadows, orbit camera (pan disabled, angle clamped)
-- **Sims-style cutaway** *(to build):* geometry between the camera and the interior fades/hides so the furnished inside stays visible from any orbit angle
-- **Object-click triggering** *(to build):* clicking a scene object fires its disaster — roof → hail, stove → fire, backyard tree → fall; hover highlight tells the player what's clickable
-- **Hail:** 250 instanced hailstones fall over the yard for 4s; roof darkens/dents after
-- **Fire:** flickering flame cones + orange light + rising smoke at kitchen corner; walls char after
-- **Fallen tree:** backyard oak winds up, crashes into the roof, removes a roof section, throws bright shingles/debris, and leaves a ceiling panel dangling inside; stays fallen until reset
-- **Camera shake:** subtle during general disaster activity, strong and contact-timed for major impacts
-- **Prevention toggles** (toolbar): the selected prevention reduces the relevant damage, and the panel shows the reduced cost + "Prevention paid off!" badge
-- **Risk score** (top right): 100 minus per-disaster weight for each un-prevented risk; color-coded green/amber/red
-- **Info panel** (right side): slides in after each disaster with education content
-- **Reset house:** clears all damage, keeps prevention toggles
+## Current experience
 
-## Preventive logic
+- The house is a furnished dollhouse with soft lighting, shadows, sky/fog, and
+  a camera constrained for reliable demos.
+- Roof, stove, and backyard tree are the only disaster triggers. Controls are
+  discoverable and stop responding once their event has fired.
+- Hail leaves roof dents, damaged shingle edges, and a darker roof state;
+  impact-resistant roofing leaves a much smaller visual aftermath.
+- Fire has a staged burst, flickering flames, smoke, sparks, an orange light,
+  localized wall/floor scorch, and damage to nearby interior pieces. Smoke
+  detectors plus an extinguisher make the event smaller and stop its wider
+  spread.
+- The fallen tree has an anticipatory windup, a contact-timed shake/debris
+  burst, persistent roof hole, broken edges, and hanging interior ceiling
+  aftermath. Removing the identified hazardous tree creates a stump instead.
+- Each completed event opens a panel with coverage, cost, and a prevention tip.
+  A reduced outcome gets a “Prevention paid off!” badge; a prevented tree event
+  gets “Risk eliminated!” and a $0 outcome.
 
-This is an educational game/simulation, not just a destruction sandbox: each
-control teaches a specific mitigation and visibly changes the outcome.
+## Prevention model
 
-| Prevention control | Mitigates | Result |
+| Prevention | Mitigates | Result |
 |---|---|---|
-| Impact-resistant roofing | Hailstorm | Reduced roof dents/scuffs and lower hail claim cost. |
-| Smoke detectors + extinguisher | Kitchen fire | Reduced fire damage and lower fire claim cost. |
-| Remove hazardous tree | Fallen tree | Eliminates that specific strike risk and avoids a tree-impact claim. |
+| Impact-resistant roofing | Hailstorm | Fewer hail impacts, lighter roof scuffs, and a lower claim cost. |
+| Smoke detectors + extinguisher | Kitchen fire | Smaller fire, less spread/scorching, and a lower claim cost. |
+| Remove hazardous tree | Fallen tree | Replaces the tree with a stump and eliminates that specific strike and claim. |
 
-Removing the confirmed hazardous tree replaces it with a stump and fully
-prevents that specific strike. Impact-resistant shingles remain intentionally
-hail-only. Preventive state is retained when the house is reset so players can
-compare outcomes.
+Prevention choices persist across reset so a presenter can show an unprotected
+result, reset, enable one prevention, and repeat the same event. A prevention
+locks as soon as its associated disaster starts, so it cannot be applied after
+the fact.
+
+## Current priorities / known gaps
+
+1. Supply and test the missing audio assets. Either rename `public/audio/tree.mp3`
+   to `tree-crash.mp3` or change the hook to the actual filename; add hail and
+   success files.
+2. Do a final visual pass on the title/intro and UI at the intended demo screen
+   size.
+3. Run the manual demo flow below on the target browser before presenting.
+
+## Architecture
+
+```text
+src/
+├── App.jsx                    # Canvas and HTML overlay split
+├── data/disasters.js           # All content, costs, timings, prevention links
+├── store/useGameStore.js       # Zustand game state and transitions
+├── scene/
+│   ├── Scene.jsx               # Lighting, orbit controls, keyboard camera input
+│   ├── House.jsx               # Custom shell, cutaway, interior aftermath
+│   ├── BackyardTree.jsx        # Standing/clickable tree and its fall
+│   ├── InteriorModel.jsx       # Reusable GLB loading and burn variants
+│   └── useClickable.js         # Shared pointer/hover behavior
+├── disasters/                  # Hail and fire animation components
+├── hooks/useGameAudio.js       # Trigger/prevention audio wiring
+└── ui/                         # Toolbar, risk score, and information panel
+```
 
 ## Visual direction
 
-- **Playful low-poly cartoon:** chunky silhouettes, faceted geometry, warm colors, soft atmospheric depth, and readable forms take priority over realism.
-- **Dramatic, choreographed disasters:** each event should have anticipation, a fast impact, a brief overshoot or settling motion, particles/debris, lighting or material response, and a persistent aftermath. Effects should feel spectacular in a short demo while remaining deterministic—use authored animation rather than physics.
-- **Impact-timed feedback:** synchronize the strongest camera shake, debris burst, damage swap, and sound cue to the moment of contact. Avoid continuous maximum-intensity shake.
-- **Damage readable at a glance:** prefer localized silhouette and geometry changes—missing/crushed sections, bright broken edges, char, dents, interior debris—over a subtle whole-object color tint.
-- **Cutaway stays polished:** exterior roof/wall damage fades with its parent structure and stops casting shadows or intercepting clicks when hidden. Interior aftermath, such as a dangling ceiling piece, remains visible to reward opening the dollhouse view.
-- **Prevention changes the spectacle:** mitigated outcomes should visibly preserve more of the house, use fewer particles, and leave smaller damage—not merely show a lower number in the panel.
-- **Demo reliability first:** effects reset cleanly, remain legible from the default camera, and produce the same satisfying beat every time.
+- Favor chunky, faceted silhouettes, warm colors, soft atmospheric depth, and
+  readable shapes over realism.
+- Choreograph every disaster: anticipation, fast impact, brief settling,
+  particles/debris, lighting/material response, then persistent aftermath.
+- Time the strongest shake, damage swap, debris, and sound to the contact beat.
+- Keep cutaway behavior polished: faded exterior parts must not obscure the
+  interior or intercept interior clicks.
+- Make prevention visible in the scene, not merely in the panel price.
+- Prioritize demo reliability: clean reset, readable default camera, and
+  repeatable outcomes.
 
-## Architecture / conventions
+## Verification checklist
 
-```
-src/
-├── App.jsx              # Canvas + HTML overlay split. UI never lives inside Canvas.
-├── main.jsx
-├── store/
-│   └── useGameStore.js  # ALL game state (Zustand). phase: idle→active→aftermath
-├── data/
-│   └── disasters.js     # ALL content/copy. Edit text here, not in components.
-├── scene/               # Static world: Scene, House (with cutaway), Ground, interior props
-├── disasters/           # One effect component per disaster + DisasterEffects manager
-├── ui/                  # HTML overlay: Toolbar (toggles + reset only), InfoPanel, RiskScore
-└── styles/ui.css
-```
+- [x] `npm run build` passes (last verified against the current working tree).
+- [ ] With sound enabled, click roof, stove, and tree and confirm one correct
+  sound each; enable a prevention and confirm the success cue. Blocked by the
+  missing/mismatched audio files listed above.
+- [ ] Click roof, observe hail and damage, then reset and repeat with
+  impact-resistant roofing; verify both visual damage and panel cost shrink.
+- [ ] Click stove, repeat with smoke detectors + extinguisher; verify fire
+  spread and panel cost shrink.
+- [ ] Click tree, repeat after removing the hazardous tree; verify stump,
+  “Risk eliminated!”, and $0 cost.
+- [ ] Orbit above and around the house; verify the cutaway keeps the rooms
+  visible and the stove remains clickable.
+- [ ] Reset after each flow; verify damage clears and prevention choices remain.
 
-**Adding a disaster (the pattern):**
-1. Add entry to `src/data/disasters.js` (copy an existing one) — include which scene object is its trigger
-2. Create effect component in `src/disasters/` (animation only, no state logic)
-3. Register it in `DisasterEffects.jsx` EFFECTS map
-4. Make the trigger object clickable in the scene: `onClick` → `triggerDisaster(id)`, plus hover highlight + `cursor: pointer`
-5. Add damage visualization to `House.jsx` if needed
-
-**Rules:**
-- Game logic lives in the store only. Components read state and render.
-- Disasters are triggered from clickable scene objects, not UI buttons. The store's `triggerDisaster(id)` is the single entry point; both clicks and (dev) hotkeys go through it.
-- Cutaway is a rendering concern in the scene layer — camera-facing walls/roof fade or cull; it must never gate whether an object is clickable.
-- Effects are visual-only and unmount when `activeDisaster` clears.
-- No physics — mesh/material swaps + particles.
-- Content/copy edits go in `disasters.js` so non-3D teammates can contribute.
-
-## Dev setup
+## Development
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm run build    # verify before committing big changes
+npm run build
 ```
 
-Node 18+. Stack: Vite, React 18, @react-three/fiber, @react-three/drei, Zustand.
-
-## Asset shopping list (pre-hackday)
-
-- [x] Quaternius CC0 GLB interior props — kitchen set, living-room set, dining nook, storage, lamps, and plants
-- [ ] Sounds: hail patter, fire crackle, wood crash, success chime — freesound.org (CC0)
-- [ ] Optional: cartoon font (e.g., Fredoka via Google Fonts)
+Node 18+. Stack: Vite, React 18, @react-three/fiber, @react-three/drei,
+Three.js, and Zustand.
 
 ## Demo script (2–3 min)
 
-1. Open on idle house — orbit once so the cutaway reveals the furnished interior; let the charm land
-2. "Let's see what a bad day looks like" → **click the roof** → hail → panel appears → walk through coverage/cost
-3. Toggle **impact-resistant roofing** → reset → click the roof again → reduced cost + badge → "prevention is the story"
-4. Toggle **remove hazardous tree** → reset → click the stump → confirm that the strike and claim were eliminated
-5. Rapid-fire: **click the stove** (fire) and **click the tree** (fall) for spectacle
-6. Point at risk score → close on audiences: customers, new agents, community events
-7. Always end on **Reset house** so it's ready for judge walk-ups
+1. Orbit the idle house once and call out the furnished cutaway interior.
+2. Click the roof, watch hail strike, then explain the coverage and cost panel.
+3. Enable impact-resistant roofing, reset, and click the roof again; compare
+   the reduced spectacle and lower cost.
+4. Enable Remove hazardous tree, reset, and click the stump; point out that the
+   strike and claim are eliminated.
+5. Reset and click the stove and tree for the two most dramatic damage beats.
+6. Point to the risk score and close with customers, new agents, and community
+   events as the intended audiences.
+7. End on Reset house for the next walk-up demo.

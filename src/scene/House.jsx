@@ -47,6 +47,17 @@ const ROOF_RUN = W / 2 + ROOF_EAVE
 const ROOF_LENGTH = D + ROOF_EAVE * 2
 const ROOF_SLOPE = Math.atan(ROOF_RISE / ROOF_RUN)
 const ROOF_PANEL_LENGTH = Math.hypot(ROOF_RUN, ROOF_RISE)
+const roofSurfaceY = (x) =>
+  H + 0.13 + ROOF_RISE * (1 - Math.min(ROOF_RUN, Math.abs(x)) / ROOF_RUN)
+const HAIL_DENTS = Array.from({ length: 11 }, (_, i) => {
+  const x = -2.58 + ((i * 43) % 51) * 0.101
+  const z = -1.82 + ((i * 29) % 36) * 0.103
+  return {
+    position: [x, roofSurfaceY(x), z],
+    rotation: [0, 0, x < 0 ? ROOF_SLOPE : -ROOF_SLOPE],
+    radius: 0.18 + (i % 4) * 0.035,
+  }
+})
 
 // The north-west roof panel is built from five flush pieces. The center piece
 // can be hidden after the tree strike, creating an actual opening without
@@ -172,6 +183,77 @@ function FireScorch({ active, reduced }) {
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
 const NOOP_RAYCAST = () => {}
 
+/** Persistent craters and broken shingle edges left after the hail resolves. */
+function HailDamage({ state, opacitySource }) {
+  const materialRefs = useRef([])
+  const groupRefs = useRef([])
+  const full = state === 'full'
+  const count = full ? HAIL_DENTS.length : state === 'reduced' ? 3 : 0
+
+  useFrame(() => {
+    const opacity = opacitySource.current[0]?.opacity ?? 1
+    groupRefs.current.forEach((group) => {
+      if (group) group.visible = opacity > 0.04
+    })
+    materialRefs.current.forEach((material) => {
+      if (material) material.opacity = opacity
+    })
+  })
+
+  if (!count) return null
+
+  return (
+    <group>
+      {HAIL_DENTS.slice(0, count).map((dent, index) => (
+        <group
+          key={index}
+          ref={(group) => (groupRefs.current[index] = group)}
+          position={dent.position}
+          rotation={dent.rotation}
+        >
+          <mesh scale={[dent.radius, full ? 0.075 : 0.035, dent.radius]} raycast={NOOP_RAYCAST}>
+            <sphereGeometry args={[1, 12, 7]} />
+            <meshStandardMaterial
+              ref={(material) => (materialRefs.current[index * 2] = material)}
+              color={full ? '#2a201f' : '#7d3934'}
+              emissive={full ? '#120d0c' : '#3e1614'}
+              emissiveIntensity={0.18}
+              roughness={1}
+              transparent
+              opacity={1}
+              flatShading
+            />
+          </mesh>
+          <mesh rotation={[Math.PI / 2, 0, index * 0.35]} raycast={NOOP_RAYCAST}>
+            <torusGeometry args={[dent.radius * 0.82, full ? 0.035 : 0.018, 5, 12]} />
+            <meshStandardMaterial
+              ref={(material) => (materialRefs.current[index * 2 + 1] = material)}
+              color={full ? '#e98262' : '#b75445'}
+              emissive="#6a211a"
+              emissiveIntensity={full ? 0.24 : 0.1}
+              transparent
+              opacity={1}
+              flatShading
+            />
+          </mesh>
+          {full && index < 7 && (
+            <>
+              <mesh position={[dent.radius * 0.8, 0.05, 0.04]} rotation={[0.2, 0.4, 0.35]} raycast={NOOP_RAYCAST} castShadow>
+                <boxGeometry args={[0.08, 0.055, 0.24]} />
+                <meshStandardMaterial color="#d65a45" flatShading />
+              </mesh>
+              <mesh position={[-dent.radius * 0.7, 0.04, -0.06]} rotation={[-0.1, -0.35, -0.28]} raycast={NOOP_RAYCAST} castShadow>
+                <boxGeometry args={[0.07, 0.05, 0.18]} />
+                <meshStandardMaterial color="#a83f35" flatShading />
+              </mesh>
+            </>
+          )}
+        </group>
+      ))}
+    </group>
+  )
+}
+
 /**
  * Gable roof (with its chimney) reveals the interior on either trigger — tilting the
  * camera toward top-down OR zooming in close — so you're never left with the
@@ -191,6 +273,7 @@ function Roof({ color, wallColor }) {
   const treeDamageMatRefs = useRef([])
 
   const triggered = useGameStore((s) => !!s.triggered.hail)
+  const hailDamage = useGameStore((s) => s.damage.hail)
   const treeTriggered = useGameStore((s) => !!s.triggered.tree)
   const treeRemoved = useGameStore((s) => !!s.preventions.removeTree)
   const trigger = useGameStore((s) => s.triggerDisaster)
@@ -320,6 +403,8 @@ function Roof({ color, wallColor }) {
           opacity={1}
         />
       </mesh>
+
+      <HailDamage state={hailDamage} opacitySource={roofMatRefs} />
 
       {/* Filled gable ends visually join the roof to the rectangular walls.
           They fade with the roof so the cutaway behavior stays intact. */}

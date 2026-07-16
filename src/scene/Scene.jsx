@@ -42,6 +42,9 @@ const KEYBOARD_CAMERA_KEYS = new Set([
   ...KEYBOARD_ZOOM_KEYS,
 ])
 
+const KEYBOARD_ORBIT_SPEED = Math.PI * 3
+const KEYBOARD_ZOOM_STEPS_PER_SECOND = 12
+
 const isTextInput = (element) =>
   element instanceof HTMLElement &&
   !!element.closest('input, textarea, select, [contenteditable="true"]')
@@ -96,18 +99,24 @@ function KeyboardOrbitControls({ controlsRef }) {
       Number(keys.has('KeyA') || keys.has('ArrowLeft'))
     const vertical = Number(keys.has('KeyW') || keys.has('ArrowUp')) -
       Number(keys.has('KeyS') || keys.has('ArrowDown'))
-    const speed = Math.PI * 2.7
     const zoomIn = keys.has('KeyE') || keys.has('Equal') || keys.has('NumpadAdd')
     const zoomOut = keys.has('KeyQ') || keys.has('Minus') || keys.has('NumpadSubtract')
 
     if (horizontal) {
-      controls.setAzimuthalAngle(controls.getAzimuthalAngle() - horizontal * speed * delta)
+      controls.setAzimuthalAngle(
+        controls.getAzimuthalAngle() - horizontal * KEYBOARD_ORBIT_SPEED * delta
+      )
     }
-    if (vertical) controls.setPolarAngle(controls.getPolarAngle() - vertical * speed * delta)
+    if (vertical) {
+      controls.setPolarAngle(
+        controls.getPolarAngle() - vertical * KEYBOARD_ORBIT_SPEED * delta
+      )
+    }
     // Zoom at a consistent rate regardless of frame rate. OrbitControls keeps
     // the result within the configured minimum and maximum camera distances.
-    if (zoomIn) controls.dollyIn(Math.pow(0.95, delta * 5))
-    if (zoomOut) controls.dollyOut(Math.pow(0.95, delta * 5))
+    const zoomFactor = Math.pow(0.95, delta * KEYBOARD_ZOOM_STEPS_PER_SECOND)
+    if (zoomIn) controls.dollyIn(zoomFactor)
+    if (zoomOut) controls.dollyOut(zoomFactor)
     controls.update()
   })
 
@@ -164,6 +173,10 @@ export default function Scene() {
       <OrbitControls
         ref={controlsRef}
         enablePan={false}
+        enableDamping
+        dampingFactor={0.08}
+        rotateSpeed={1.25}
+        zoomSpeed={1.4}
         minDistance={7}
         maxDistance={22}
         maxPolarAngle={Math.PI / 2.1}

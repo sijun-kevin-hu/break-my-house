@@ -23,6 +23,7 @@ export default function DisasterEffects() {
   const damage = useGameStore((s) => s.damage)
   const impacts = useGameStore((s) => s.impacts)
   const treeIsImpacting = !!triggered.tree && !damage.tree
+  const hailIsImpacting = !!triggered.hail && !damage.hail
 
   return (
     <>
@@ -30,9 +31,8 @@ export default function DisasterEffects() {
         const Effect = EFFECTS[id]
         return Effect ? <Effect key={id} /> : null
       })}
-      {/* The tree owns a stronger, contact-timed shake in BackyardTree. Avoid
-          mounting two camera controllers during its fall. */}
-      {impacts > 0 && !treeIsImpacting && <CameraShake intensity={0.4} />}
+      {/* Tree and hail own impact-timed shakes. Keep the generic shake for fire. */}
+      {impacts > 0 && !treeIsImpacting && !hailIsImpacting && <CameraShake intensity={0.4} />}
     </>
   )
 }
