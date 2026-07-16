@@ -14,6 +14,11 @@ export default function useGameAudio() {
     volume: 0.65,
   });
 
+  const fireLoopSound = useSound("/audio/fire-loop.mp3", {
+    volume: 0.5,
+    loop: true,
+  });
+
   const treeSound = useSound("/audio/tree.mp3", {
     volume: 0.8,
   });
@@ -33,7 +38,13 @@ export default function useGameAudio() {
     }
 
     if (triggered?.fire && !previous.fire) {
+      fireLoopSound.stop();
       fireSound.play();
+    }
+
+    if (!triggered?.fire && previous.fire) {
+      fireSound.stop();
+      fireLoopSound.stop();
     }
 
     if (
@@ -62,9 +73,20 @@ export default function useGameAudio() {
   }, [preventions]);
 
   useEffect(() => {
+    const fireIntroAudio = fireSound.audio.current;
+    const continueFireAmbience = () => {
+      if (useGameStore.getState().triggered?.fire) {
+        fireLoopSound.play();
+      }
+    };
+
+    fireIntroAudio?.addEventListener("ended", continueFireAmbience);
+
     return () => {
+      fireIntroAudio?.removeEventListener("ended", continueFireAmbience);
       hailSound.stop();
       fireSound.stop();
+      fireLoopSound.stop();
       treeSound.stop();
       successSound.stop();
     };
