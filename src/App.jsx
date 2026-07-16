@@ -3,6 +3,7 @@ import Scene from './scene/Scene'
 import Toolbar from './ui/Toolbar'
 import InfoPanel from './ui/InfoPanel'
 import RiskScore from './ui/RiskScore'
+import useGameAudio from './hooks/useGameAudio'
 import './styles/ui.css'
 
 /**
@@ -10,6 +11,7 @@ import './styles/ui.css'
  * Rule of thumb: nothing interactive lives inside the Canvas — UI stays in HTML.
  */
 export default function App() {
+  useGameAudio()
   return (
     <div className="app">
       <Canvas
