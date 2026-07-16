@@ -1,10 +1,12 @@
 import { OrbitControls, Sky } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
+import * as THREE from 'three'
 import House from './House'
 import Ground from './Ground'
 import BackyardTree from './BackyardTree'
 import DisasterEffects from '../disasters/DisasterEffects'
+import { useGameStore } from '../store/useGameStore'
 
 function CameraProbe() {
   useFrame((state) => {
@@ -123,12 +125,84 @@ function KeyboardOrbitControls({ controlsRef }) {
   return null
 }
 
+// Restore the previous frame's visual-only offset before OrbitControls reads
+// the camera. This lets orbit and keyboard controls remain responsive during a
+// shake instead of treating the shake as player input.
+function RestoreCameraShake({ shakeRef }) {
+  useFrame(({ camera }) => {
+    camera.position.sub(shakeRef.current.offset)
+    shakeRef.current.offset.set(0, 0, 0)
+  })
+
+  return null
+}
+
+/**
+ * Author a few event-specific camera impulses rather than applying one generic
+ * shake to every disaster. The timings align with the visual contact beats:
+ * the oak hits at 0.85s, while the hail roof strikes start at 0.65s.
+ */
+function ApplyCameraShake({ shakeRef }) {
+  const hailTriggered = useGameStore((s) => !!s.triggered.hail)
+  const hailProtected = useGameStore((s) => !!s.preventions.hail)
+  const treeTriggered = useGameStore((s) => !!s.triggered.tree)
+  const treeRemoved = useGameStore((s) => !!s.preventions.removeTree)
+  const previous = useRef({ hail: false, tree: false })
+
+  useFrame(({ camera, clock }) => {
+    const now = clock.elapsedTime
+    const shake = shakeRef.current
+
+    if (hailTriggered && !previous.current.hail) {
+      shake.hailStart = now + 0.65
+    }
+    if (treeTriggered && !previous.current.tree && !treeRemoved) {
+      shake.treeStart = now + 0.85
+    }
+    previous.current.hail = hailTriggered
+    previous.current.tree = treeTriggered
+
+    let x = 0
+    let y = 0
+    let z = 0
+
+    const treeAge = now - shake.treeStart
+    if (treeAge >= 0 && treeAge < 0.72) {
+      const falloff = Math.pow(1 - treeAge / 0.72, 1.7)
+      const magnitude = 0.34 * falloff
+      x += Math.sin(treeAge * 46) * magnitude
+      y += Math.cos(treeAge * 59) * magnitude * 0.62
+      z += Math.sin(treeAge * 38 + 0.7) * magnitude * 0.72
+    }
+
+    const hailAge = now - shake.hailStart
+    if (hailAge >= 0 && hailAge < 2.15) {
+      const falloff = Math.pow(1 - hailAge / 2.15, 1.25)
+      // Hail should feel forceful but remain much gentler than the falling oak.
+      const magnitude = (hailProtected ? 0.045 : 0.09) * falloff
+      x += Math.sin(hailAge * 31) * magnitude
+      y += Math.cos(hailAge * 43) * magnitude * 0.55
+      z += Math.sin(hailAge * 27 + 1.1) * magnitude * 0.62
+    }
+
+    shake.offset.set(x, y, z)
+    camera.position.add(shake.offset)
+  })
+
+  return null
+}
+
 /**
  * Scene composition only — no game logic here.
  * Swap <House /> placeholder geometry for a GLB when assets land (see PROJECT.md).
  */
 export default function Scene() {
   const controlsRef = useRef()
+  const shakeRef = useRef({
+    offset: new THREE.Vector3(),
+    hailStart: -Infinity,
+    treeStart: -Infinity,
+  })
 
   return (
     <>
@@ -164,6 +238,7 @@ export default function Scene() {
       <directionalLight position={[-8, 6, -6]} intensity={0.4} color="#bcd4ff" />
 
       <CameraProbe />
+      <RestoreCameraShake shakeRef={shakeRef} />
       <KeyboardOrbitControls controlsRef={controlsRef} />
       <Ground />
       <House />
@@ -182,6 +257,7 @@ export default function Scene() {
         maxPolarAngle={Math.PI / 2.1}
         target={[3.1, 2.1, 0]}
       />
+      <ApplyCameraShake shakeRef={shakeRef} />
     </>
   )
 }

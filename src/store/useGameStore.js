@@ -23,8 +23,6 @@ const getDisasterOutcome = (preventions, disasterId) => {
  *  - damage:     { [id]: 'full' | 'reduced' | 'prevented' } outcome applied
  *  - preventions:{ [id]: boolean } active prevention controls; a control can
  *                mitigate more than one damage path when explicitly mapped
- *  - impacts:    count of disasters still inside their initial "impact" window,
- *                used only to drive the camera shake (so it settles down)
  *  - panelDisaster: which disaster the InfoPanel currently shows
  *  - acknowledgementRequired: blocks new disaster selections from the instant
  *                an event begins until its result panel's "Got it" is pressed
@@ -35,7 +33,6 @@ export const useGameStore = create((set, get) => ({
   triggered: {},
   damage: {},
   preventions: {},
-  impacts: 0,
   panelDisaster: null,
   acknowledgementRequired: false,
 
@@ -46,7 +43,6 @@ export const useGameStore = create((set, get) => ({
     const outcome = getDisasterOutcome(get().preventions, id)
     set((s) => ({
       triggered: { ...s.triggered, [id]: true },
-      impacts: s.impacts + 1,
       panelDisaster: null,
       acknowledgementRequired: true,
     }))
@@ -66,7 +62,6 @@ export const useGameStore = create((set, get) => ({
       set((s) => ({
         panelDisaster: id,
         damage: { ...s.damage, [id]: outcome },
-        impacts: Math.max(0, s.impacts - 1),
       }))
     }, duration)
   },
@@ -89,7 +84,6 @@ export const useGameStore = create((set, get) => ({
     set({
       triggered: {},
       damage: {},
-      impacts: 0,
       panelDisaster: null,
       acknowledgementRequired: false,
     }),
