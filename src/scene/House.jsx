@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { useClickable } from './useClickable'
+import DisasterTargetCue from './DisasterTargetCue'
 import InteriorModel from './InteriorModel'
 
 /**
@@ -464,6 +465,12 @@ function Roof({ wallColor }) {
         reduced={protectedByRoof}
         opacitySource={roofMatRefs}
       />
+      {hovered && (
+        <DisasterTargetCue
+          position={[0, H + ROOF_RISE + 0.5, 0]}
+          radius={1.35}
+        />
+      )}
 
       {/* Filled gable ends visually join the roof to the rectangular walls.
           They fade with the roof so the cutaway behavior stays intact. */}
@@ -789,6 +796,13 @@ function Stove() {
           />
         </mesh>
       ))}
+      {hovered && (
+        <DisasterTargetCue
+          position={[0, 1.65, 0]}
+          color="#ff8a43"
+          radius={0.48}
+        />
+      )}
     </group>
   )
 }

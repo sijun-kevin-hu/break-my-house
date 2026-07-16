@@ -83,7 +83,8 @@ must be present and clickable before the tree disaster is triggered.
   short windows; keep their acknowledgement action reachable while scrolling.
 - The Sims cutaway is a rendering concern. Near walls and roof pieces fade or
   hide without preventing an interior target from being clicked.
-- Use `useClickable` for a new scene trigger so hover, pointer cursor, event
+- Use `useClickable` and the non-raycastable `DisasterTargetCue` for a new
+  scene trigger so hover halo, pointer cursor, event
   propagation, and disabled behavior stay consistent.
 - Make damage legible through localized geometry/material changes: dents,
   scorch, missing roof sections, debris, or silhouette changes.

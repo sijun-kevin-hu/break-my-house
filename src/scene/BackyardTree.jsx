@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { useClickable } from './useClickable'
+import DisasterTargetCue from './DisasterTargetCue'
 
 // Positive X rotation sends the canopy from the north yard toward the house.
 // Stop before horizontal so the crown settles on the pitched roof instead of
@@ -177,40 +178,58 @@ export default function BackyardTree() {
   return (
     <>
       {removed ? (
-        <group position={[-1.05, 0, -6.55]} {...bind}>
-          {/* The stump remains clickable so players can test the eliminated risk. */}
-          <mesh position={[0, 0.34, 0]} castShadow>
-            <cylinderGeometry args={[0.31, 0.4, 0.68, 8]} />
-            <meshStandardMaterial
-              color="#7a5334"
-              emissive="#d8a66c"
-              emissiveIntensity={hovered ? 0.32 : 0.04}
-              flatShading
-            />
-          </mesh>
-          <mesh position={[0, 0.69, 0]} castShadow>
-            <cylinderGeometry args={[0.3, 0.3, 0.035, 16]} />
-            <meshStandardMaterial color="#d8a66c" flatShading />
-          </mesh>
-          {[-0.42, 0.44].map((x) => (
-            <mesh key={x} position={[x, 0.08, 0.12]} rotation={[0.12, 0, x]} castShadow>
-              <boxGeometry args={[0.28, 0.12, 0.14]} />
-              <meshStandardMaterial color="#9a6a42" flatShading />
+        <>
+          <group position={[-1.05, 0, -6.55]} {...bind}>
+            {/* The stump remains clickable so players can test the eliminated risk. */}
+            <mesh position={[0, 0.34, 0]} castShadow>
+              <cylinderGeometry args={[0.31, 0.4, 0.68, 8]} />
+              <meshStandardMaterial
+                color="#7a5334"
+                emissive="#d8a66c"
+                emissiveIntensity={hovered ? 0.32 : 0.04}
+                flatShading
+              />
             </mesh>
-          ))}
-        </group>
+            <mesh position={[0, 0.69, 0]} castShadow>
+              <cylinderGeometry args={[0.3, 0.3, 0.035, 16]} />
+              <meshStandardMaterial color="#d8a66c" flatShading />
+            </mesh>
+            {[-0.42, 0.44].map((x) => (
+              <mesh key={x} position={[x, 0.08, 0.12]} rotation={[0.12, 0, x]} castShadow>
+                <boxGeometry args={[0.28, 0.12, 0.14]} />
+                <meshStandardMaterial color="#9a6a42" flatShading />
+              </mesh>
+            ))}
+          </group>
+          {hovered && (
+            <DisasterTargetCue
+              position={[-1.05, 1.2, -6.55]}
+              color="#d8a66c"
+              radius={0.48}
+            />
+          )}
+        </>
       ) : (
-        <group ref={pivotRef} position={[-1.05, 0, -6.55]} {...bind}>
-          {/* Trunk */}
-          <mesh position={[0, TRUNK_HEIGHT / 2, 0]} castShadow>
-            <cylinderGeometry args={[0.25, 0.38, TRUNK_HEIGHT, 6]} />
-            <meshStandardMaterial color="#7a5334" flatShading />
-          </mesh>
-          {/* Canopy — clustered faceted icosahedrons to match the yard trees */}
-          {canopy(0, [0, 6.65, 0], 1.55, '#3f8f45')}
-          {canopy(1, [0.9, 6.05, 0.48], 1.0, '#4a9b4e')}
-          {canopy(2, [-0.8, 6.15, -0.38], 0.9, '#37833e')}
-        </group>
+        <>
+          <group ref={pivotRef} position={[-1.05, 0, -6.55]} {...bind}>
+            {/* Trunk */}
+            <mesh position={[0, TRUNK_HEIGHT / 2, 0]} castShadow>
+              <cylinderGeometry args={[0.25, 0.38, TRUNK_HEIGHT, 6]} />
+              <meshStandardMaterial color="#7a5334" flatShading />
+            </mesh>
+            {/* Canopy — clustered faceted icosahedrons to match the yard trees */}
+            {canopy(0, [0, 6.65, 0], 1.55, '#3f8f45')}
+            {canopy(1, [0.9, 6.05, 0.48], 1.0, '#4a9b4e')}
+            {canopy(2, [-0.8, 6.15, -0.38], 0.9, '#37833e')}
+          </group>
+          {hovered && (
+            <DisasterTargetCue
+              position={[-1.05, 8.35, -6.55]}
+              color="#b9ed79"
+              radius={1.15}
+            />
+          )}
+        </>
       )}
       {!removed && impacted && <ImpactBurst reduced={false} />}
     </>
