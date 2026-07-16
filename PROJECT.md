@@ -1,7 +1,8 @@
 # Break My House 🏠🌪️
 
 Interactive low-poly 3D insurance-risk education game. Players trigger a
-disaster on the house, see coverage and a typical claim cost, then compare the
+disaster on the house, compare uninsured out-of-pocket exposure with an
+illustrative covered outcome using a $1,000 demo deductible, then compare the
 outcome with prevention enabled.
 
 **Hackday pitch:** insurance education that people actually want to play with —
@@ -28,7 +29,7 @@ technical convention or invariant changes.
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
 | Object-triggered disasters | Done | Roof → hail, stove → fire, tree/stump → tree risk. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. |
 | Discoverable interactions | Done | Live triggers use hover highlights/idle affordance and a pointer cursor; fired triggers stop reading as interactive. |
-| Insurance information panel | Done | Appears shortly after the event's key beat; shows coverage, typical cost, and prevention guidance. |
+| Insurance information panel | Partial | Appears shortly after the event's key beat; shows a financial snapshot: uninsured out-of-pocket exposure, potential insurer payment, and the $1,000 demo deductible. Reduced and eliminated outcomes also quantify estimated damage avoided against the unprotected baseline. It notes that policy terms, limits, and wind/hail deductibles may differ. Production build passes; the revised comparison layout needs manual visual verification. |
 | Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
 | Reset for repeat demos | Done | Clears triggered disasters and damage while keeping prevention selections for easy comparison. |
 | Sound effects | Partial | Audio hook is connected, but the shipped audio directory currently contains only `fire.mp3` and `tree.mp3`; it still needs `hail.mp3`, `success.mp3`, and a filename match for `tree-crash.mp3`. |
@@ -56,9 +57,10 @@ additional disasters, and mobile layout.
 - The fallen tree has an anticipatory windup, a contact-timed shake/debris
   burst, persistent roof hole, broken edges, and hanging interior ceiling
   aftermath. Removing the identified hazardous tree creates a stump instead.
-- Each completed event opens a panel with coverage, cost, and a prevention tip. Its high-contrast, pulsing “Got it” button must be acknowledged before another disaster can be selected; camera orbit and zoom remain available in the meantime.
-  A reduced outcome gets a “Prevention paid off!” badge; a prevented tree event
-  gets “Risk eliminated!” and a $0 outcome.
+- Each completed event opens a financial snapshot: the full uninsured exposure, potential insurer payment, and the $1,000 demo deductible. Its high-contrast, pulsing “Got it” button must be acknowledged before another disaster can be selected; camera orbit and zoom remain available in the meantime.
+  A reduced outcome gets a “Prevention paid off!” badge and the estimated damage
+  avoided; a prevented tree event gets “Risk eliminated!”, its full avoided-damage
+  amount, and a $0 outcome.
 
 ## Prevention model
 
@@ -123,6 +125,10 @@ src/
   missing/mismatched audio files listed above.
 - [ ] Click roof, observe hail and damage, then reset and repeat with
   impact-resistant roofing; verify both visual damage and panel cost shrink.
+- [ ] For each disaster outcome, verify the result panel clearly distinguishes
+  uninsured out-of-pocket exposure, potential insurer payment, and the $1,000
+  demo deductible; confirm prevention and eliminated-risk variants show the
+  corresponding lower or $0 values and the correct avoided-damage amount.
 - [ ] Trigger any disaster and, before pressing “Got it,” verify the other
   disaster objects cannot be selected but mouse and keyboard camera movement still work; then acknowledge the panel and verify another unfired object can trigger.
 - [ ] Click stove, repeat with smoke detectors + extinguisher; verify fire

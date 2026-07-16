@@ -22,9 +22,9 @@ test suite; use the manual smoke test in `PROJECT.md` as well.
 
 - **Start every task by reading this file and `PROJECT.md`.** Use them to
   recover project context before inspecting or changing implementation files.
-- `src/data/disasters.js`: all disaster copy, costs, timings, prevention
-  relationships, and risk weights. Do not put customer-facing copy in scene or
-  UI components.
+- `src/data/disasters.js`: all disaster copy, costs, the fixed demo-deductible
+  assumption, timings, prevention relationships, and risk weights. Do not put
+  customer-facing copy in scene or UI components.
 - `src/store/useGameStore.js`: all game state and transitions. Components
   select state and render it; they do not coordinate gameplay independently.
 - `PROJECT.md`: product scope, feature status, known gaps, and demo checklist.

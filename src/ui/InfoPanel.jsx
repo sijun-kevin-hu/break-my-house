@@ -1,5 +1,7 @@
 import { useGameStore } from '../store/useGameStore'
-import { DISASTERS } from '../data/disasters'
+import { COVERAGE_DEMO, DISASTERS } from '../data/disasters'
+
+const formatDollars = (amount) => `$${amount.toLocaleString('en-US')}`
 
 /** Slides in after a disaster resolves. All copy lives in src/data/disasters.js. */
 export default function InfoPanel() {
@@ -12,6 +14,14 @@ export default function InfoPanel() {
   const reduced = damage[d.id] === 'reduced'
   const prevented = damage[d.id] === 'prevented'
   const mitigated = reduced || prevented
+  const repairEstimate = prevented
+    ? (d.repairEstimatePrevented ?? 0)
+    : reduced
+      ? d.repairEstimateReduced
+      : d.repairEstimate
+  const insurerPayment = Math.max(0, repairEstimate - COVERAGE_DEMO.deductible)
+  const policyholderShare = repairEstimate - insurerPayment
+  const avoidedDamage = d.repairEstimate - repairEstimate
 
   return (
     <aside className="info-panel">
@@ -27,13 +37,44 @@ export default function InfoPanel() {
       <h3>What happened</h3>
       <p>{prevented ? (d.whatPrevented ?? d.whatHappened) : d.whatHappened}</p>
 
-      <h3>What coverage applies</h3>
-      <p>{prevented ? (d.coveragePrevented ?? d.coverage) : d.coverage}</p>
+      <section className="cost-comparison" aria-label={COVERAGE_DEMO.snapshotTitle}>
+        <h3>{COVERAGE_DEMO.snapshotTitle}</h3>
+        <div className="cost-row cost-uninsured">
+          <span>{COVERAGE_DEMO.uninsuredLabel}</span>
+          <strong className="cost-full">
+            {repairEstimate === 0
+              ? COVERAGE_DEMO.noClaimLabel
+              : `${COVERAGE_DEMO.potentialPaymentPrefix} ${formatDollars(repairEstimate)} ${COVERAGE_DEMO.outOfPocketSuffix}`}
+          </strong>
+        </div>
+        <div className="cost-row">
+          <span>{COVERAGE_DEMO.insurerPaymentLabel}</span>
+          <strong className={mitigated ? 'cost-reduced' : 'cost-covered'}>
+            {repairEstimate === 0
+              ? COVERAGE_DEMO.noClaimLabel
+              : `${COVERAGE_DEMO.potentialPaymentPrefix} ${formatDollars(insurerPayment)}`}
+          </strong>
+        </div>
+        <div className="cost-row cost-policyholder-share">
+          <span>{COVERAGE_DEMO.policyholderShareLabel}</span>
+          <strong className={mitigated ? 'cost-reduced' : ''}>
+            {policyholderShare === 0
+              ? COVERAGE_DEMO.noClaimLabel
+              : COVERAGE_DEMO.deductibleLabel}
+          </strong>
+        </div>
+        <p className="cost-disclaimer">{COVERAGE_DEMO.disclaimer}</p>
+      </section>
 
-      <h3>Typical cost</h3>
-      <p className={mitigated ? 'cost-reduced' : 'cost-full'}>
-        {prevented ? d.avgCostPrevented : reduced ? d.avgCostReduced : d.avgCost}
-      </p>
+      {mitigated && (
+        <section className="prevention-savings" aria-label={COVERAGE_DEMO.preventionImpactTitle}>
+          <span>{COVERAGE_DEMO.preventionImpactTitle}</span>
+          <strong>
+            {COVERAGE_DEMO.avoidedDamageLead} {formatDollars(avoidedDamage)} {COVERAGE_DEMO.avoidedDamageSuffix}
+          </strong>
+          <small>{COVERAGE_DEMO.avoidedDamageDetail}</small>
+        </section>
+      )}
 
       <h3>Prevention tip</h3>
       <p>{d.preventionTip}</p>

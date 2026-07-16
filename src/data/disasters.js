@@ -2,6 +2,26 @@
  * All disaster content lives here — panel copy, costs, prevention info.
  * Adding a disaster = add an entry here + an effect component in src/disasters/.
  */
+export const COVERAGE_DEMO = {
+  deductible: 1000,
+  snapshotTitle: 'Financial snapshot',
+  uninsuredLabel: 'No homeowners insurance',
+  insurerPaymentLabel: 'If covered: insurer may pay',
+  policyholderShareLabel: 'Your share',
+  outOfPocketSuffix: 'out of pocket',
+  potentialPaymentPrefix: 'Up to',
+  deductibleLabel: '$1,000 demo deductible',
+  noClaimLabel: '$0 — no claim needed',
+  preventionImpactTitle: 'Prevention impact',
+  avoidedDamageLead: 'You avoided',
+  avoidedDamageSuffix: 'in estimated damage',
+  avoidedDamageDetail: 'Compared with the unprotected scenario.',
+  introSummary:
+    'Explore a small house, trigger a disaster, and compare the full uninsured cost with an illustrative covered outcome using a $1,000 demo deductible.',
+  disclaimer:
+    'Illustrative only. Assumes a covered loss, a $1,000 demo deductible, and sufficient policy limits. Your policy and deductible may differ.',
+}
+
 export const DISASTERS = {
   hail: {
     id: 'hail',
@@ -11,9 +31,8 @@ export const DISASTERS = {
     resultDelay: 2200,
     riskWeight: 20,
     whatHappened: 'Golf-ball hail battered the roof and dented the gutters.',
-    coverage: 'Homeowners policy — dwelling coverage (wind/hail peril).',
-    avgCost: '$12,000 average hail claim',
-    avgCostReduced: '$3,500 with impact-resistant roofing',
+    repairEstimate: 12000,
+    repairEstimateReduced: 3500,
     prevention: 'Impact-resistant roofing',
     preventionIds: ['hail'],
     preventionTip:
@@ -27,9 +46,8 @@ export const DISASTERS = {
     resultDelay: 1700,
     riskWeight: 30,
     whatHappened: 'An unattended stovetop fire spread to the cabinets before it was put out.',
-    coverage: 'Homeowners policy — dwelling + personal property (fire peril).',
-    avgCost: '$25,000 average kitchen fire claim',
-    avgCostReduced: '$4,000 with early smoke detection',
+    repairEstimate: 25000,
+    repairEstimateReduced: 4000,
     prevention: 'Smoke detectors + extinguisher',
     preventionIds: ['fire'],
     preventionTip:
@@ -47,10 +65,8 @@ export const DISASTERS = {
     whatHappened: 'A storm dropped the backyard oak straight onto the roofline.',
     whatPrevented:
       'The hazardous oak was removed before the storm, leaving nothing close enough to strike the house.',
-    coverage: 'Homeowners policy — dwelling coverage (falling object peril).',
-    coveragePrevented: 'No property damage occurred, so no insurance claim was needed.',
-    avgCost: '$9,000 average fallen-tree claim',
-    avgCostPrevented: '$0 in tree-impact damage',
+    repairEstimate: 9000,
+    repairEstimatePrevented: 0,
     prevention: 'Remove hazardous tree',
     preventionIds: ['removeTree'],
     preventionOutcomes: { removeTree: 'prevented' },

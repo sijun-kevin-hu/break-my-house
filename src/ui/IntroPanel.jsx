@@ -1,4 +1,5 @@
 import { useGameStore } from '../store/useGameStore'
+import { COVERAGE_DEMO } from '../data/disasters'
 
 const controls = [
   { keys: 'Click', label: 'the roof, stove, or backyard tree', detail: 'Trigger a risk event' },
@@ -22,15 +23,12 @@ export default function IntroPanel() {
           <span aria-hidden="true">⌂</span>
           <h2 id="intro-title">How much can one home risk cost?</h2>
         </div>
-        <p className="intro-summary">
-          Explore a small house, trigger a disaster, and see how prevention changes
-          the damage, coverage story, and typical claim cost.
-        </p>
+        <p className="intro-summary">{COVERAGE_DEMO.introSummary}</p>
 
         <div className="intro-lesson" aria-label="What you will learn">
           <span aria-hidden="true">✦</span>
           <p>
-            <strong>The lesson:</strong> The best claim is often the one you prevent.
+            <strong>The lesson:</strong> Prevention helps avoid damage, disruption, and avoidable costs.
           </p>
         </div>
 
