@@ -24,7 +24,11 @@ export default function DisasterEffects() {
   const triggered = useGameStore((s) => s.triggered)
   return (
     <>
+      {/* Keep the mesh-heavy water effect warm so clicking the valve only
+          starts animation instead of constructing its geometry mid-action. */}
+      <WaterLeak active={!!triggered.water} />
       {Object.keys(triggered).map((id) => {
+        if (id === 'water') return null
         const Effect = EFFECTS[id]
         return Effect ? <Effect key={id} /> : null
       })}

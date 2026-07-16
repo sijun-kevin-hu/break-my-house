@@ -57,8 +57,11 @@ export const DISASTERS = {
     id: 'water',
     label: 'Bathroom Water Loss',
     emoji: '💧',
-    effectDuration: 3600,
-    resultDelay: 1900,
+    effectDuration: 9000,
+    resultDelay: 6500,
+    reducedResultDelay: 1900,
+    sprayPersistsUntilReset: true,
+    sprayDurationReduced: 1.35,
     riskWeight: 20,
     whatHappened:
       'A bathroom supply line split and sent water across the floor and into the nearby walls.',

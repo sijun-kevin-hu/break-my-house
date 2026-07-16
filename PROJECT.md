@@ -22,11 +22,11 @@ technical convention or invariant changes.
 | Feature | Status | Acceptance / current behavior |
 |---|---|---|
 | Low-poly 3D house and orbit camera | Done | Mouse orbit and zoom; pan disabled. Keyboard orbit uses WASD/arrow keys and zoom uses Q/E, -/+, or numpad -/+. |
-| Sims-style cutaway | Partial | Exterior walls, interior partitions, and doors use smooth angle/pitch/zoom opacity. Both roof sections use the same pitch/zoom opacity function; the wing roof now spans the full shared-wall run and tucks beneath the original eave, while its materials disable depth writes and omit a thresholded shadow. Production build passes; manual orbit verification remains. |
+| Sims-style cutaway | Partial | Exterior walls, full-height interior partitions, and doors use smooth angle/pitch/zoom opacity. Bedroom walls now extend to the wing wall height with matching infill above every doorway, removing the permanently open upper section. Both roof sections use the same pitch/zoom opacity function; the wing roof spans the full shared-wall run and tucks beneath the original eave, while its materials disable depth writes and omit a thresholded shadow. Production build passes; manual orbit verification remains. |
 | Roomy 3BR/1BA furnished interior | Partial | The wing is now deeper, giving every bedroom more floor area. The primary bed now rests against the bathroom-side wall and faces a dresser plus wall-mounted TV centered together on the opposite wall. In both secondary bedrooms, the beds sit against the north wall and the dressers sit flush to their side walls, aligned beside the beds. The bathroom vanity is placed on the south wall with a compact countertop handle, a rectangular basin, and a small rectangular shutoff tab below it; no pipe or U-shaped control passes through the sink. The room also includes a mirror, storage, towels, bath mat, and hamper, while the bathtub has no exposed fixture. In the original core, the TV now sits on the west wall opposite a rotated sofa, a taller floor lamp and plant add vertical balance, and the sink sits close to the stove. Production build passes; room scale, furniture clearance, circulation, wall joins, roof alignment, and default framing need manual visual verification. |
 | Hailstorm | Partial | Dense deterministic hail now strikes both roof sections, with the wing using the same staged dent, color-damage, prevention, and persistence logic as the core roof. Settled hail and low-poly drifts surround the complete house footprint. Production build passes; the expanded animation and pileup still need manual visual verification. |
 | Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and the east wall; it leaves a dense, staged trail of overlapping floor char. The aftermath now uses shallow raised burn geometry whose lower edge clears both the slab and rug, while prevention keeps the spectacle and damage contained. Production build passes; the expanded char path still needs manual visual verification. |
-| Bathroom water loss | Partial | Clicking the exposed bathroom supply line starts a deterministic spray with a seeded water-burst sound, expanding puddles, and persistent damp-wall aftermath. A visible leak sensor + automatic shutoff sharply limits the spray, sound, and standing water. Production build and store-flow checks pass; the effect needs manual visual/audio verification. |
+| Bathroom water loss | Partial | Clicking the vanity shutoff immediately starts a deterministic under-sink burst aimed into the bathroom, with no trigger-time geometry mount. Three anchored core jets ease rapidly to full reach while 64 arcing droplets launch in a tight stagger. A dark, opaque pool starts growing in the open aisle on the first frame, followed by three overlapping pools with authored ease-out timing and a subtle settling ripple. Their raised bodies, bright cyan perimeter rings, and pale highlights keep all four volumes legible against the teal floor without transparent-surface sorting. Spray and matching seeded water audio persist until reset. A visible leak sensor + automatic shutoff limits the spray and sound to 1.35 seconds, reduces their density, and keeps one clearly exposed puddle contained. Production build passes; the smoother effect needs manual visual/audio verification. |
 | Fallen tree | Done | Clickable oak topples onto the roof with impact debris and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
 | Object-triggered disasters | Done | Roof → hail, stove → fire, bathroom supply line → water loss, tree/stump → tree risk. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. |
 | Discoverable interactions | Done | Live triggers use hover highlights, idle affordance, a pointer cursor, and a non-intercepting 3D pulse-ring halo; fired triggers stop reading as interactive. |
@@ -63,8 +63,14 @@ further room-specific disasters beyond the bathroom water loss, and mobile layou
   sparks, light, a dense overlapping trail of floor char, wall scorch, and timed object
   charring. Smoke detectors plus an extinguisher keep it at the stove and stop
   its wider spread.
-- The bathroom supply-line loss sprays into the hall bath, grows into connected
-  floor puddles, and leaves damp drywall. A visible sensor and automatic shutoff
+- The bathroom supply-line loss erupts from the vanity shutoff and keeps throwing
+  dense jets and arcing droplets into the room until reset. Its geometry is
+  prepared before interaction, so the anchored jets and first pool begin on the
+  first frame after the click. An immediate dark pool eases into the open aisle,
+  then three overlapping water volumes spread with staggered, settling motion.
+  Their opaque, visibly raised
+  bodies, bright cyan rims, and pale highlights contrast the teal flooring. Damp
+  drywall remains behind the sink. A visible sensor and automatic shutoff
   contain it to a short spray and a small puddle.
 - The fallen tree has an anticipatory windup, a contact-timed shake/debris
   burst, persistent roof hole, broken edges, and hanging interior ceiling
@@ -156,8 +162,14 @@ src/
   faces it across the enlarged rug, and the unprotected fire still reaches the
   TV at the authored beat while prevention contains the event at the stove.
 - [ ] Click the bathroom supply line, then reset and repeat with leak sensor +
-  automatic shutoff; verify spray duration, puddle size, damp-wall aftermath,
-  panel cost, and estimated avoided damage all shrink.
+  automatic shutoff; verify the unprotected burst clearly originates below the
+  vanity with no perceptible click-to-action pause or initial full-size puddle
+  flash, keeps spraying until reset, and smoothly builds four connected, visibly raised
+  water bodies: a dark puddle in the unobstructed aisle within the first second,
+  followed by three overlapping high-contrast pools with cyan rims and pale highlights that
+  remain visible against the teal floor after the panel appears. Confirm the protected spray duration,
+  density, sound, puddle size, damp-wall aftermath, panel cost, and estimated
+  avoided damage all shrink.
 - [ ] Inspect the furnished rooms from the default and overhead angles: verify
   the bathroom vanity sits against the south wall with clear toilet access, its
   compact countertop handle, rectangular basin, and rectangular below-sink shutoff
@@ -177,8 +189,10 @@ src/
   overhead pitches; verify core and wing walls fade smoothly together without
   popping, flickering, phantom shadows, or intercepting clicks while transparent.
 - [ ] Verify all three bedrooms and the bathroom have visible framed doors,
-  each leaf swings into its room without touching a bed or blocking the hall, and each door fades
-  with its adjoining interior partition across orbit angle, pitch, and zoom.
+  each wall reaches full partition height with solid infill above its doorway,
+  each leaf swings into its room without touching a bed or blocking the hall,
+  and each door fades with its adjoining interior partition across orbit angle,
+  pitch, and zoom.
 - [ ] Orbit slowly around the lower gable and its junction with the original
   roof; verify both roofs begin and finish fading together, and neither surface
   pops, sorts through the other, changes the interior lighting abruptly, or

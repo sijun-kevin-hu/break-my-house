@@ -55,6 +55,10 @@ export const useGameStore = create((set, get) => ({
     const duration =
       outcome === 'prevented'
         ? (DISASTERS[id].preventedDuration ?? 450)
+        : outcome === 'reduced'
+          ? (DISASTERS[id].reducedResultDelay ??
+            DISASTERS[id].resultDelay ??
+            DISASTERS[id].effectDuration)
         : (DISASTERS[id].resultDelay ?? DISASTERS[id].effectDuration)
     setTimeout(() => {
       if (!get().triggered[id]) return // reset happened mid-impact

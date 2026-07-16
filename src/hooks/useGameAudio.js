@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import useSound from "./useSound";
 import { useGameStore } from "../store/useGameStore";
+import { DISASTERS } from "../data/disasters";
 
 function createWaterBurst(duration) {
   if (typeof window === "undefined") return null;
@@ -8,7 +9,9 @@ function createWaterBurst(duration) {
   if (!AudioContextClass) return null;
 
   const context = new AudioContextClass();
-  const frameCount = Math.ceil(context.sampleRate * duration);
+  const persistent = duration == null;
+  const bufferDuration = persistent ? 2 : duration;
+  const frameCount = Math.ceil(context.sampleRate * bufferDuration);
   const buffer = context.createBuffer(1, frameCount, context.sampleRate);
   const samples = buffer.getChannelData(0);
   let seed = 1729;
@@ -16,7 +19,9 @@ function createWaterBurst(duration) {
     seed = (seed * 1664525 + 1013904223) >>> 0;
     const noise = (seed / 4294967295) * 2 - 1;
     const progress = index / frameCount;
-    const envelope = Math.min(1, progress * 18) * Math.pow(1 - progress, 0.42);
+    const envelope = persistent
+      ? 0.9 + Math.sin(progress * Math.PI * 2) * 0.06
+      : Math.min(1, progress * 18) * Math.pow(1 - progress, 0.42);
     samples[index] = noise * envelope;
   }
 
@@ -24,13 +29,14 @@ function createWaterBurst(duration) {
   const filter = context.createBiquadFilter();
   const gain = context.createGain();
   source.buffer = buffer;
+  source.loop = persistent;
   filter.type = "bandpass";
   filter.frequency.value = 1450;
   filter.Q.value = 0.45;
-  gain.gain.value = 0.16;
+  gain.gain.value = persistent ? 0.19 : 0.16;
   source.connect(filter).connect(gain).connect(context.destination);
   source.start();
-  source.stop(context.currentTime + duration);
+  if (!persistent) source.stop(context.currentTime + duration);
 
   return {
     stop() {
@@ -97,7 +103,13 @@ export default function useGameAudio() {
 
     if (triggered?.water && !previous.water) {
       waterBurst.current?.stop();
-      waterBurst.current = createWaterBurst(preventions?.water ? 0.85 : 2.65);
+      waterBurst.current = createWaterBurst(
+        preventions?.water
+          ? DISASTERS.water.sprayDurationReduced
+          : DISASTERS.water.sprayPersistsUntilReset
+            ? null
+            : DISASTERS.water.sprayDuration
+      );
     }
 
     if (!triggered?.water && previous.water) {

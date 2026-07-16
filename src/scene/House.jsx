@@ -851,6 +851,16 @@ function InteriorDoor({
           opacity={1}
         />
       </mesh>
+      {/* Full-height partition infill above the framed doorway. */}
+      <mesh position={[0, 1.86, 0]} castShadow>
+        <boxGeometry args={[width + 0.08, 0.66, 0.12]} />
+        <meshStandardMaterial
+          color={WING_COLORS.wall}
+          flatShading
+          transparent
+          opacity={1}
+        />
+      </mesh>
 
       {/* Hinge at the left jamb; the leaf swings into the room, clear of the hall. */}
       <group position={[-width / 2 + 0.04, 0, 0]} rotation={[0, swing * 0.84, 0]}>
@@ -1233,21 +1243,21 @@ function BedroomWing() {
       <WingOuterWall normal={[-1, 0, 0]} position={[WING_X_MIN, 1.16, -2.75]} size={[0.12, 2.32, 1.3]} />
       <WingOuterWall normal={[-1, 0, 0]} position={[WING_X_MIN, 1.16, 2.75]} size={[0.12, 2.32, 1.3]} />
 
-      {/* Low connected partitions stop at a broad, furniture-free central hall. */}
-      <WingWall position={[5.25, 0.78, -1.98]} size={[0.1, 1.56, 2.8]} />
+      {/* Full-height connected partitions stop at a broad, furniture-free central hall. */}
+      <WingWall position={[5.25, 1.16, -1.98]} size={[0.1, 2.32, 2.8]} />
       {/* The shared bathroom occupies the full east bay, with one hall opening. */}
-      <WingWall position={[7.7, 0.78, -1.98]} size={[0.1, 1.56, 2.8]} />
-      <WingWall position={[7.7, 0.78, 2.03]} size={[0.1, 1.56, 2.7]} />
+      <WingWall position={[7.7, 1.16, -1.98]} size={[0.1, 2.32, 2.8]} />
+      <WingWall position={[7.7, 1.16, 2.03]} size={[0.1, 2.32, 2.7]} />
 
       {/* North room wall, segmented into three properly aligned door openings. */}
-      <WingWall position={[3.36, 0.78, -0.55]} size={[1.12, 1.56, 0.1]} />
-      <WingWall position={[4.96, 0.78, -0.55]} size={[0.58, 1.56, 0.1]} />
-      <WingWall position={[5.74, 0.78, -0.55]} size={[0.98, 1.56, 0.1]} />
-      <WingWall position={[7.3, 0.78, -0.55]} size={[0.8, 1.56, 0.1]} />
+      <WingWall position={[3.36, 1.16, -0.55]} size={[1.12, 2.32, 0.1]} />
+      <WingWall position={[4.96, 1.16, -0.55]} size={[0.58, 2.32, 0.1]} />
+      <WingWall position={[5.74, 1.16, -0.55]} size={[0.98, 2.32, 0.1]} />
+      <WingWall position={[7.3, 1.16, -0.55]} size={[0.8, 2.32, 0.1]} />
 
       {/* South suite wall uses two wide openings off the same hallway. */}
-      <WingWall position={[3.98, 0.78, 0.65]} size={[2.35, 1.56, 0.1]} />
-      <WingWall position={[6.75, 0.78, 0.65]} size={[1.9, 1.56, 0.1]} />
+      <WingWall position={[3.98, 1.16, 0.65]} size={[2.35, 2.32, 0.1]} />
+      <WingWall position={[6.75, 1.16, 0.65]} size={[1.9, 2.32, 0.1]} />
 
       {/* Every room has a visible open door, swung away from the hallway. */}
       <InteriorDoor position={[4.295, 0.13, -0.55]} width={0.7} swing={1} color="#a9624f" />

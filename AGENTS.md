@@ -86,8 +86,9 @@ must be present and clickable before the tree disaster is triggered.
   hide without preventing an interior target from being clicked.
 - Core and wing exterior walls share one house-centered, pitch-aware opacity
   calculation. Keep fading meshes mounted at zero opacity to avoid angle-edge popping.
-- Wing partitions and their doors use the same pitch/zoom reveal with two-sided
-  angle fading, so interior targets stay readable from either side of a room.
+- Wing partitions are full-height, including infill above each door, and use
+  the same pitch/zoom reveal as their doors with two-sided angle fading, so
+  interior targets stay readable from either side of a room.
 - Core and wing roof sections share one pitch/zoom opacity calculation. The wing
   roof spans the full shared-wall run and tucks just beneath the original eave;
   its fading materials disable depth writes and thresholded shadows to prevent
@@ -107,7 +108,9 @@ must be present and clickable before the tree disaster is triggered.
 - Audio is loaded from `public/audio/`. If audio filenames change, update
   `useGameAudio.js` in the same change. The current expected names are
   `hail.mp3`, `fire.mp3`, `fire-loop.mp3`, `tree.mp3`, and `success.mp3`.
-  The water-loss burst is a short seeded Web Audio effect and has no asset file.
+  The water-loss burst is a seeded Web Audio effect configured in
+  `src/data/disasters.js`; the unprotected sound loops until reset while the
+  automatic-shutoff version uses its short authored duration. It has no asset file.
 
 ## Adding a disaster
 
