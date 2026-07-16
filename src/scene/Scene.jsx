@@ -167,9 +167,9 @@ function ApplyCameraShake({ shakeRef }) {
     let z = 0
 
     const treeAge = now - shake.treeStart
-    if (treeAge >= 0 && treeAge < 0.72) {
-      const falloff = Math.pow(1 - treeAge / 0.72, 1.7)
-      const magnitude = 0.34 * falloff
+    if (treeAge >= 0 && treeAge < 0.9) {
+      const falloff = Math.pow(1 - treeAge / 0.9, 1.7)
+      const magnitude = 0.48 * falloff
       x += Math.sin(treeAge * 46) * magnitude
       y += Math.cos(treeAge * 59) * magnitude * 0.62
       z += Math.sin(treeAge * 38 + 0.7) * magnitude * 0.72

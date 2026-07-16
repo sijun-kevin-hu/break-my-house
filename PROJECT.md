@@ -28,7 +28,7 @@ technical convention or invariant changes.
 | Kitchen fire | Partial | Stove-origin fire advances through counter, TV, fridge, living, dining, and the east wall; it leaves a dense, staged trail of overlapping floor char plus persistent stovetop soot and a warped burner. With smoke detectors + extinguisher enabled, a procedural smoke alarm sounds while a red extinguisher enters, sweeps foam across the stovetop flame, and fades after the flame is out; only the localized reduced scorch remains. Production build passes; the full/protected sequence still needs manual visual and audio verification. |
 | Bathroom water loss | Partial | Clicking the vanity shutoff immediately starts a deterministic under-sink burst aimed into the bathroom, with no trigger-time geometry mount. Three anchored core jets ease rapidly to full reach while 64 arcing droplets launch in a tight stagger. A dark, opaque pool starts growing in the open aisle on the first frame, followed by three overlapping pools with authored ease-out timing and a subtle settling ripple. Their raised bodies, bright cyan perimeter rings, and pale highlights keep all four volumes legible against the teal floor without transparent-surface sorting. Spray and matching seeded water audio persist until reset. A visible leak sensor + automatic shutoff limits the spray and sound to 1.35 seconds, reduces their density, and keeps one clearly exposed puddle contained. Production build passes; the smoother effect needs manual visual/audio verification. |
 | Electrical arc fire | Partial | The primary-bedroom power strip visibly carries five occupied sockets feeding the TV, console, phone charger, floor lamp, and portable heater. Clicking only the strip starts deterministic blue-white arcs, then sequentially pops the connected devices, races into the wall circuit, and ignites a bounded cord-path bedroom fire with sparks, multi-source smoke, device shutdown, melted debris, and a broad persistent scorch trail. When smoke detectors are selected but AFCI protection is not, the smoke alarm starts with the first flame, not the initial arc, and continues without reducing the outcome. AFCI breakers + an electrical inspection add a visible protected breaker, trip the circuit at 0.48 seconds, shorten the procedural audio, and stop the event at a small singe before it spreads. Production build passes; strip discoverability, cord routing, effect placement, audio, and full/protected timing need manual browser verification. |
-| Fallen tree | Done | Clickable oak topples onto the roof with impact debris, a pronounced contact-timed camera shake, and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
+| Fallen tree | Done | Clickable oak topples onto the roof with an explosive mixed shingle-and-leaf debris burst, dust plume, warm impact flash, a pronounced contact-timed camera shake, and a roof opening; removing the hazardous tree swaps it for a stump and prevents the strike. |
 | Object-triggered disasters | Partial | Roof → hail, stove → fire, bathroom supply line → water loss, overloaded bedroom power strip → electrical arc fire, tree/stump → tree risk. The toolbar lists every target after one “Click on the…” instruction and strikes through the one that has fired; reset restores every target name. Toolbar contains prevention controls and reset only; once one starts, all disaster targets stay locked until the result panel’s “Got it” is pressed, while camera movement remains available. The new power-strip path is build-verified but still needs manual interaction verification. |
 | Discoverable interactions | Done | Live triggers use hover highlights, idle affordance, a pointer cursor, and a non-intercepting 3D pulse-ring halo; fired triggers stop reading as interactive. |
 | Insurance information panel | Partial | Appears shortly after the event's key beat; shows a financial snapshot: uninsured out-of-pocket exposure, potential insurer payment, and the $1,000 demo deductible. Reduced and eliminated outcomes also quantify estimated damage avoided against the unprotected baseline. It notes that policy terms, limits, and wind/hail deductibles may differ. The panel becomes a viewport-bounded scroller with a sticky acknowledgement action on narrow or short windows. Production build passes; the revised comparison layout needs manual visual verification. |
@@ -83,8 +83,9 @@ additional room-specific disasters beyond the water and electrical losses, and m
   protected panel that trips almost immediately, sharply reducing the
   spectacle, procedural audio, damage, and panel cost. Selecting smoke detectors
   without AFCI protection also sounds an alert from the first electrical flame onward.
-- The fallen tree has an anticipatory windup, a pronounced contact-timed shake/debris
-  burst, persistent roof hole, broken edges, and hanging interior ceiling
+- The fallen tree has an anticipatory windup, hard roof-contact overshoot and
+  lateral wobble, an explosive contact-timed shake with mixed shingle-and-leaf
+  debris, dust, and a brief warm flash, plus a persistent roof hole, broken edges, and hanging interior ceiling
   aftermath. Removing the identified hazardous tree creates a stump instead.
 - Each completed event opens a financial snapshot: the full uninsured exposure, potential insurer payment, and the $1,000 demo deductible. Its high-contrast, pulsing “Got it” button must be acknowledged before another disaster can be selected; camera orbit and zoom remain available in the meantime.
   A reduced outcome gets a “Prevention paid off!” badge and the estimated damage
@@ -213,8 +214,10 @@ src/
   circulation, the sink remains close to the
   stove, and the taller living-room lamp and plant remain within the room
   silhouette.
-- [ ] Click tree, repeat after removing the hazardous tree; verify stump,
-  silent eliminated-risk result, “Risk eliminated!”, and $0 cost.
+- [ ] Click tree and verify its hard roof-contact shake, lateral settling wobble,
+  mixed shingle-and-leaf debris, dust plume, warm impact flash, and roof opening;
+  then repeat after removing the hazardous tree and verify stump, silent
+  eliminated-risk result, “Risk eliminated!”, and $0 cost.
 - [ ] Orbit above and around the house; verify the cutaway keeps all three
   bedrooms and the shared bathroom readable, the lower gable fully covers the wing when
   closed, and the stove, bathroom pipe, and bedroom power strip remain clickable when the roof fades.

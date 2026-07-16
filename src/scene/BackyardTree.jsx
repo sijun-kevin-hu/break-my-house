@@ -18,18 +18,33 @@ const TRUNK_HEIGHT = 6.1
 
 function ImpactBurst({ reduced }) {
   const shardRefs = useRef([])
+  const leafRefs = useRef([])
   const dustRefs = useRef([])
+  const impactLightRef = useRef()
   const elapsed = useRef(0)
 
   const shards = useMemo(
     () =>
-      Array.from({ length: reduced ? 4 : 11 }, (_, i) => ({
+      Array.from({ length: reduced ? 4 : 18 }, (_, i) => ({
         velocity: new THREE.Vector3(
-          ((i * 47) % 9 - 4) * 0.34,
-          1.5 + ((i * 29) % 5) * 0.25,
-          0.7 + ((i * 31) % 7) * 0.18
+          ((i * 47) % 11 - 5) * 0.38,
+          1.8 + ((i * 29) % 6) * 0.28,
+          0.8 + ((i * 31) % 8) * 0.2
         ),
-        spin: new THREE.Vector3(2 + (i % 3), 3 + (i % 4), 1.5 + (i % 5)),
+        spin: new THREE.Vector3(2.5 + (i % 3), 3.5 + (i % 4), 2 + (i % 5)),
+      })),
+    [reduced]
+  )
+
+  const leaves = useMemo(
+    () =>
+      Array.from({ length: reduced ? 3 : 12 }, (_, i) => ({
+        velocity: new THREE.Vector3(
+          ((i * 37) % 13 - 6) * 0.25,
+          1.15 + ((i * 17) % 5) * 0.2,
+          ((i * 23) % 11 - 5) * 0.22
+        ),
+        spin: new THREE.Vector3(4 + (i % 4), 5 + (i % 3), 3 + (i % 5)),
       })),
     [reduced]
   )
@@ -50,16 +65,32 @@ function ImpactBurst({ reduced }) {
       shard.visible = t < 1.2
     })
 
+    leafRefs.current.forEach((leaf, i) => {
+      if (!leaf) return
+      const data = leaves[i]
+      leaf.position.set(
+        data.velocity.x * t,
+        data.velocity.y * t - 2.9 * t * t,
+        data.velocity.z * t
+      )
+      leaf.rotation.set(data.spin.x * t, data.spin.y * t, data.spin.z * t)
+      leaf.visible = t < 1.45
+    })
+
     dustRefs.current.forEach((puff, i) => {
       if (!puff) return
       const age = Math.max(0, t - i * 0.06)
-      const scale = 0.18 + age * 1.15
+      const scale = 0.22 + age * 1.35
       puff.scale.setScalar(scale)
-      puff.position.y = age * 0.45
-      puff.position.x = (i - 1.5) * (0.18 + age * 0.12)
-      puff.material.opacity = Math.max(0, 0.48 - age * 0.42)
-      puff.visible = age < 1.2
+      puff.position.y = age * 0.5
+      puff.position.x = (i - (dustRefs.current.length - 1) / 2) * (0.18 + age * 0.14)
+      puff.material.opacity = Math.max(0, 0.58 - age * 0.48)
+      puff.visible = age < 1.3
     })
+
+    if (impactLightRef.current) {
+      impactLightRef.current.intensity = Math.max(0, 5.5 * (1 - t / 0.32))
+    }
   })
 
   return (
@@ -75,16 +106,33 @@ function ImpactBurst({ reduced }) {
           />
         </mesh>
       ))}
-      {Array.from({ length: reduced ? 2 : 4 }, (_, i) => (
+      {leaves.map((_, i) => (
+        <mesh key={`leaf-${i}`} ref={(el) => (leafRefs.current[i] = el)} castShadow>
+          <dodecahedronGeometry args={[0.12 + (i % 3) * 0.035, 0]} />
+          <meshStandardMaterial
+            color={i % 3 === 0 ? '#bbd85a' : i % 2 ? '#4d9e49' : '#2f783b'}
+            emissive="#31582e"
+            emissiveIntensity={0.14}
+            flatShading
+          />
+        </mesh>
+      ))}
+      {Array.from({ length: reduced ? 2 : 6 }, (_, i) => (
         <mesh
           key={`dust-${i}`}
           ref={(el) => (dustRefs.current[i] = el)}
           position={[(i - 1.5) * 0.15, 0, 0]}
         >
           <icosahedronGeometry args={[0.5, 0]} />
-          <meshStandardMaterial color="#c9b49a" transparent opacity={0.48} depthWrite={false} />
+          <meshStandardMaterial color="#c9b49a" transparent opacity={0.58} depthWrite={false} />
         </mesh>
       ))}
+      <pointLight
+        ref={impactLightRef}
+        color="#ffb36b"
+        distance={8}
+        intensity={0}
+      />
     </group>
   )
 }
@@ -134,12 +182,12 @@ export default function BackyardTree() {
         } else if (t < 0.8) {
           // Accelerate hard through the fall and overshoot on contact.
           const fall = (t - 0.18) / 0.62
-          pivot.rotation.x = -0.055 + (FALL_ANGLE + 0.145) * Math.pow(fall, 2.3)
+          pivot.rotation.x = -0.055 + (FALL_ANGLE + 0.19) * Math.pow(fall, 2.3)
         } else {
           // Two quick settling bounces make the crown feel heavy on the roof.
           const settle = (t - 0.8) / 0.2
           pivot.rotation.x =
-            FALL_ANGLE + Math.cos(settle * Math.PI * 3) * 0.09 * (1 - settle)
+            FALL_ANGLE + Math.cos(settle * Math.PI * 3.5) * 0.13 * (1 - settle)
         }
 
         if (!impacted && pivot.rotation.x >= IMPACT_ANGLE) {
@@ -149,7 +197,13 @@ export default function BackyardTree() {
         pivot.rotation.x = THREE.MathUtils.damp(pivot.rotation.x, 0, 5, delta)
       }
       // Gentle "notice me" sway while standing and un-triggered.
-      const sway = triggered ? 0 : Math.sin(state.clock.elapsedTime * 1.5) * 0.02
+      const impactSway =
+        triggered && impacted
+          ? Math.sin((fallTime.current - 0.85) * Math.PI * 8) *
+            0.07 *
+            Math.max(0, 1 - (fallTime.current - 0.85) / 0.4)
+          : 0
+      const sway = triggered ? impactSway : Math.sin(state.clock.elapsedTime * 1.5) * 0.02
       pivot.rotation.z = THREE.MathUtils.lerp(pivot.rotation.z, sway, delta * 3)
     }
 
