@@ -49,9 +49,12 @@ const WING_CENTER_X = (WING_X_MIN + WING_X_MAX) / 2
 const WING_DEPTH = 6.8
 const WING_ROOF_BASE = 2.42
 const WING_ROOF_EAVE = 0.32
-// Meet the original east eave instead of intersecting it with a second
-// transparent gable. One clean seam avoids camera-dependent surface sorting.
-const WING_ROOF_X_MIN = WING_X_MIN + 0.38
+// Carry the lower gable across the complete shared-wall run, then tuck its
+// inner edge just beneath the main eave. Starting at the old eave line left a
+// visible uncovered strip where the addition met the original house.
+// The tiny inset prevents coplanar roof faces and their transparent-material
+// sorting artifacts while keeping the two roofs visually continuous.
+const WING_ROOF_X_MIN = WING_X_MIN - 0.02
 const WING_ROOF_X_MAX = WING_X_MAX + WING_ROOF_EAVE
 const WING_ROOF_WIDTH = WING_ROOF_X_MAX - WING_ROOF_X_MIN
 const WING_ROOF_CENTER_X = (WING_ROOF_X_MIN + WING_ROOF_X_MAX) / 2

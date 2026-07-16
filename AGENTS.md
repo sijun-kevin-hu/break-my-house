@@ -71,7 +71,8 @@ must be present and clickable before the tree disaster is triggered.
 - Snapshot prevention when a disaster starts. A player cannot turn on
   protection retroactively; related controls lock after its disaster fires.
 - Triggered effects and damage remain until `resetHouse()`. Reset clears damage
-  but deliberately retains prevention choices for comparison demos.
+  and stale trigger-hover state, but deliberately retains prevention choices for
+  comparison demos.
 - A prevention must change both the spectacle and the information panel, not
   only the displayed price. `removeTree` is a fully prevented outcome.
 - Keep effects deterministic and authored. Do not add a physics engine.
@@ -88,8 +89,9 @@ must be present and clickable before the tree disaster is triggered.
 - Wing partitions and their doors use the same pitch/zoom reveal with two-sided
   angle fading, so interior targets stay readable from either side of a room.
 - Core and wing roof sections share one pitch/zoom opacity calculation. The wing
-  meets the original eave at one non-overlapping seam; its fading materials disable
-  depth writes and thresholded shadows to prevent angle-dependent popping.
+  roof spans the full shared-wall run and tucks just beneath the original eave;
+  its fading materials disable depth writes and thresholded shadows to prevent
+  angle-dependent popping.
 - Use `useClickable` and the non-raycastable `DisasterTargetCue` for a new
   scene trigger so hover halo, pointer cursor, event
   propagation, and disabled behavior stay consistent.

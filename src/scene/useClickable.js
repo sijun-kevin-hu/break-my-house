@@ -12,6 +12,12 @@ export function useClickable(onClick, disabled = false) {
   const [hovered, setHovered] = useState(false)
   const active = hovered && !disabled
 
+  // Triggering an event disables every target. Clear local hover state at that
+  // point so a later reset cannot revive a stale highlight or pulse ring.
+  useEffect(() => {
+    if (disabled) setHovered(false)
+  }, [disabled])
+
   // Show a pointer cursor while hovering a live trigger.
   useEffect(() => {
     if (!active) return
