@@ -32,7 +32,7 @@ technical convention or invariant changes.
 | Prevention and risk score | Done | Prevention is snapped when an event begins, locks afterward, affects visuals/panel/cost, and feeds the risk score. |
 | Reset for repeat demos | Done | Clears triggered disasters and damage while keeping prevention selections for easy comparison. |
 | Sound effects | Partial | Audio hook is connected, but the shipped audio directory currently contains only `fire.mp3` and `tree.mp3`; it still needs `hail.mp3`, `success.mp3`, and a filename match for `tree-crash.mp3`. |
-| First-load introduction | Partial | An opening risk-lab panel explains the learning goal and shows object, camera, zoom, prevention, and reset controls before the player begins. Production build passes; manual visual smoke testing remains. |
+| First-load introduction | Partial | An opening risk-lab panel explains the learning goal and shows a left-aligned object, camera, zoom, prevention, and reset checklist before the player begins. A persistent “How to play” control reopens it without changing the simulation. Production build passes; manual visual smoke testing remains. |
 | Title/intro polish | Partial | The first-load experience is now purposeful; a final at-screen-size visual pass remains. |
 
 **Explicitly out of scope:** real-world physics, LLM NPCs, walking character,
@@ -113,7 +113,8 @@ src/
 
 - [x] `npm run build` passes (last verified against the current working tree).
 - [ ] On a fresh load, review the risk-lab introduction; start it and confirm the
-  roof, stove, tree, camera, prevention, and reset controls match the guidance.
+  roof, stove, tree, camera, prevention, and reset controls match the guidance;
+  then reopen it with “How to play” without changing the simulation.
 - [ ] With sound enabled, click roof, stove, and tree and confirm one correct
   sound each; enable a prevention and confirm the success cue. Blocked by the
   missing/mismatched audio files listed above.

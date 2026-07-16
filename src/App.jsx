@@ -5,6 +5,7 @@ import InfoPanel from './ui/InfoPanel'
 import RiskScore from './ui/RiskScore'
 import IntroPanel from './ui/IntroPanel'
 import useGameAudio from './hooks/useGameAudio'
+import { useGameStore } from './store/useGameStore'
 import './styles/ui.css'
 
 /**
@@ -13,6 +14,8 @@ import './styles/ui.css'
  */
 export default function App() {
   useGameAudio()
+  const showIntroduction = useGameStore((s) => s.showIntroduction)
+
   return (
     <div className="app">
       <Canvas
@@ -28,6 +31,13 @@ export default function App() {
           <h1>Break My House</h1>
           <p>Summon a disaster. See what coverage kicks in. Learn to prevent it.</p>
         </header>
+        <button
+          className="intro-reopen-button"
+          onClick={showIntroduction}
+          aria-label="Open how to play instructions"
+        >
+          <span aria-hidden="true">?</span> How to play
+        </button>
         <RiskScore />
         <Toolbar />
         <InfoPanel />

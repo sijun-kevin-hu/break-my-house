@@ -73,6 +73,8 @@ export const useGameStore = create((set, get) => ({
 
   startExperience: () => set({ hasStarted: true }),
 
+  showIntroduction: () => set({ hasStarted: false }),
+
   resetHouse: () =>
     set({ triggered: {}, damage: {}, impacts: 0, panelDisaster: null }),
 
