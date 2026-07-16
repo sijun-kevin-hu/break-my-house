@@ -116,7 +116,7 @@ export default function Ground() {
       {[3.2, 4.1, 5.0, 5.9, 6.8].map((z, i) => (
         <mesh
           key={z}
-          rotation={[-Math.PI / 2, 0, i % 2 ? 0.25 : -0.2]}
+          rotation={[0, i % 2 ? 0.25 : -0.2, 0]}
           position={[i % 2 ? 0.12 : -0.1, 0.06, z]}
           receiveShadow
         >

@@ -12,6 +12,9 @@ const FALL_ANGLE = 0.72
 const IMPACT_ANGLE = FALL_ANGLE * 0.72
 const FALL_DURATION = 1.25
 const CANOPY_EMISSIVE = '#8fe08f'
+// Deliberately taller than the roof ridge. The base sits farther back so the
+// upper trunk and crown meet the roofline during the fall, not the north wall.
+const TRUNK_HEIGHT = 6.1
 
 function ImpactBurst({ reduced }) {
   const shardRefs = useRef([])
@@ -179,16 +182,16 @@ export default function BackyardTree() {
 
   return (
     <>
-      <group ref={pivotRef} position={[0, 0, -4.5]} {...bind}>
+      <group ref={pivotRef} position={[-1.05, 0, -6.55]} {...bind}>
         {/* Trunk */}
-        <mesh position={[0, 1.6, 0]} castShadow>
-          <cylinderGeometry args={[0.25, 0.35, 3.2, 6]} />
+        <mesh position={[0, TRUNK_HEIGHT / 2, 0]} castShadow>
+          <cylinderGeometry args={[0.25, 0.38, TRUNK_HEIGHT, 6]} />
           <meshStandardMaterial color="#7a5334" flatShading />
         </mesh>
         {/* Canopy — clustered faceted icosahedrons to match the yard trees */}
-        {canopy(0, [0, 3.6, 0], 1.3, '#3f8f45')}
-        {canopy(1, [0.7, 3.2, 0.4], 0.8, '#4a9b4e')}
-        {canopy(2, [-0.6, 3.3, -0.3], 0.7, '#37833e')}
+        {canopy(0, [0, 6.65, 0], 1.55, '#3f8f45')}
+        {canopy(1, [0.9, 6.05, 0.48], 1.0, '#4a9b4e')}
+        {canopy(2, [-0.8, 6.15, -0.38], 0.9, '#37833e')}
       </group>
       {impacted && <ImpactBurst reduced={prevented} />}
       {impactShake && (
