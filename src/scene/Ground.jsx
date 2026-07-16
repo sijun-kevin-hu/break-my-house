@@ -111,6 +111,10 @@ export default function Ground() {
         <circleGeometry args={[4.6, 6]} />
         <meshStandardMaterial color={GRASS_DARK} flatShading />
       </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[6.2, 0.021, 0]} receiveShadow>
+        <circleGeometry args={[4.65, 6]} />
+        <meshStandardMaterial color={GRASS_DARK} flatShading />
+      </mesh>
 
       {/* Stepping-stone path to the front door */}
       {[3.2, 4.1, 5.0, 5.9, 6.8].map((z, i) => (
@@ -127,7 +131,7 @@ export default function Ground() {
 
       {/* Scattered low-poly trees around the perimeter (clear of the house) */}
       <Tree position={[-6.5, 0, 3.5]} scale={1.15} tint="#3f8f45" />
-      <Tree position={[7, 0, 2]} scale={0.95} tint="#4a9b4e" />
+      <Tree position={[12, 0, 4]} scale={0.95} tint="#4a9b4e" />
       <Tree position={[6, 0, -6]} scale={1.25} tint="#37833e" />
       <Tree position={[-7, 0, -4]} scale={1.05} tint="#4a9b4e" />
       <Tree position={[-4.5, 0, 7] } scale={0.85} tint="#3f8f45" />
@@ -135,13 +139,13 @@ export default function Ground() {
       {/* Rocks */}
       <Rock position={[4.5, 0.25, 4.8]} scale={1.1} />
       <Rock position={[-3.8, 0.18, 5.6]} scale={0.7} />
-      <Rock position={[5.5, 0.2, -2.5]} scale={0.85} />
+      <Rock position={[10.8, 0.2, -3.8]} scale={0.85} />
 
       {/* Flower tufts */}
       <Flowers position={[-3.2, 0, 3.4]} color="#f2c14e" />
       <Flowers position={[3.4, 0, 3.6]} color="#e8657f" />
       <Flowers position={[-2.4, 0, -3.6]} color="#c98be0" />
-      <Flowers position={[3.0, 0, -3.2]} color="#f2c14e" />
+      <Flowers position={[10.5, 0, -4.4]} color="#f2c14e" />
     </group>
   )
 }

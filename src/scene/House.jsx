@@ -42,8 +42,24 @@ const W = 5.6
 const D = 4.2
 const H = 3.1
 const T = 0.1 // wall thickness
-const ROOM_CENTER = [0, H / 2, 0]
-const CAM_TARGET = [0, 2.1, 0] // must match OrbitControls target in Scene.jsx
+const WING_X_MIN = W / 2
+const WING_X_MAX = 9.6
+const WING_WIDTH = WING_X_MAX - WING_X_MIN
+const WING_CENTER_X = (WING_X_MIN + WING_X_MAX) / 2
+const WING_DEPTH = 6.8
+const WING_ROOF_BASE = 2.42
+const WING_ROOF_EAVE = 0.32
+// Meet the original east eave instead of intersecting it with a second
+// transparent gable. One clean seam avoids camera-dependent surface sorting.
+const WING_ROOF_X_MIN = WING_X_MIN + 0.38
+const WING_ROOF_X_MAX = WING_X_MAX + WING_ROOF_EAVE
+const WING_ROOF_WIDTH = WING_ROOF_X_MAX - WING_ROOF_X_MIN
+const WING_ROOF_CENTER_X = (WING_ROOF_X_MIN + WING_ROOF_X_MAX) / 2
+const WING_ROOF_RISE = 1.12
+const WING_ROOF_RUN = WING_DEPTH / 2 + WING_ROOF_EAVE
+const WING_ROOF_SLOPE = Math.atan(WING_ROOF_RISE / WING_ROOF_RUN)
+const WING_ROOF_PANEL_LENGTH = Math.hypot(WING_ROOF_RUN, WING_ROOF_RISE)
+const CAM_TARGET = [3.1, 2.1, 0] // must match OrbitControls target in Scene.jsx
 
 const ROOF_EAVE = 0.38
 const ROOF_RISE = 1.45
@@ -95,9 +111,46 @@ const LEFT_ROOF_SEGMENTS = [
 const WALLS = [
   { id: 'north', normal: [0, 0, -1], position: [0, H / 2, -D / 2], size: [W, H, T] },
   { id: 'south', normal: [0, 0, 1], position: [0, H / 2, D / 2], size: [W, H, T] },
-  { id: 'east', normal: [1, 0, 0], position: [W / 2, H / 2, 0], size: [T, H, D] },
+  // The east wall is segmented around a real opening into the bedroom wing.
+  { id: 'east-north', normal: [1, 0, 0], position: [W / 2, H / 2, -1.375], size: [T, H, 1.45] },
+  { id: 'east-south', normal: [1, 0, 0], position: [W / 2, H / 2, 1.375], size: [T, H, 1.45] },
+  { id: 'east-lintel', normal: [1, 0, 0], position: [W / 2, 2.5, 0], size: [T, 1.2, 1.3] },
   { id: 'west', normal: [-1, 0, 0], position: [-W / 2, H / 2, 0], size: [T, H, D] },
 ]
+
+/**
+ * One continuous cutaway model for the complete house. Using the shared orbit
+ * target avoids the core and wing disagreeing about which side is near, while
+ * soft thresholds prevent walls from popping as the camera crosses an axis.
+ */
+const wallOpacityForCamera = (camera, normal, twoSided = false) => {
+  const dx = camera.position.x - CAM_TARGET[0]
+  const dy = camera.position.y - CAM_TARGET[1]
+  const dz = camera.position.z - CAM_TARGET[2]
+  const horizontalDistance = Math.hypot(dx, dz) || 1
+  const distance = Math.hypot(dx, dy, dz) || 1
+  const facing = (normal[0] * dx + normal[2] * dz) / horizontalDistance
+  const nearSideReveal = twoSided
+    ? THREE.MathUtils.smoothstep(Math.abs(facing), 0.28, 0.92) * 0.88
+    : THREE.MathUtils.smoothstep(facing, -0.12, 0.38)
+  const elevation = Math.atan2(dy, horizontalDistance)
+  const overheadReveal = THREE.MathUtils.smoothstep(elevation, 0.56, 0.92)
+  const closeReveal = 1 - THREE.MathUtils.smoothstep(distance, 8, 13)
+  return 1 - Math.max(nearSideReveal, overheadReveal * 0.94, closeReveal * 0.9)
+}
+
+/** One pitch/zoom cutaway rule shared by both roof sections. */
+const roofOpacityForCamera = (camera) => {
+  const dx = camera.position.x - CAM_TARGET[0]
+  const dy = camera.position.y - CAM_TARGET[1]
+  const dz = camera.position.z - CAM_TARGET[2]
+  const distance = Math.hypot(dx, dy, dz) || 1
+  // Polar angle from straight-up (+Y): ~0 = overhead, ~PI/2 = level horizon.
+  const polar = Math.acos(dy / distance)
+  const pitchReveal = clamp01((1.3 - polar) / (1.3 - 0.85))
+  const zoomReveal = clamp01((13 - distance) / (13 - 8))
+  return 1 - Math.max(pitchReveal, zoomReveal)
+}
 
 function Wall({ id, normal, position, size, fireActive, fireReduced }) {
   const meshRef = useRef()
@@ -109,15 +162,12 @@ function Wall({ id, normal, position, size, fireActive, fireReduced }) {
     const mat = matRef.current
     if (!mesh || !mat) return
 
-    // Is this wall between the camera and the room? Compare its outward normal
-    // to the direction from the room center out to the camera.
-    const toCamX = camera.position.x - ROOM_CENTER[0]
-    const toCamZ = camera.position.z - ROOM_CENTER[2]
-    const facing = normal[0] * toCamX + normal[2] * toCamZ // >0 => near wall
-
-    const target = facing > 0 ? 0 : 1
-    mat.opacity += (target - mat.opacity) * 0.15 // smooth fade
-    mesh.visible = mat.opacity > 0.04
+    const target = wallOpacityForCamera(camera, normal)
+    mat.opacity = THREE.MathUtils.damp(mat.opacity, target, 7, delta)
+    // Keep the mesh mounted at zero opacity; toggling visible caused angle-edge popping.
+    mesh.visible = true
+    mesh.castShadow = mat.opacity > 0.62
+    mesh.raycast = mat.opacity < 0.42 ? NOOP_RAYCAST : THREE.Mesh.prototype.raycast
 
     // The north and west kitchen walls char most heavily. The remaining walls
     // pick up only a faint smoke stain so the burn stays localized and legible.
@@ -155,13 +205,13 @@ function FireScorch({ active, reduced }) {
     { position: [-1.43, 0.122, -1.18], radius: 1.06, scale: [1.4, 0.52, 1], delay: 0.18, opacity: 0.9 },
     { position: [-1.3, 0.123, -0.78], radius: 1.12, scale: [1.28, 0.62, 1], delay: 0.62, opacity: 0.94 },
     { position: [-0.88, 0.124, -0.92], radius: 0.82, scale: [1.35, 0.48, 1], delay: 0.82, opacity: 0.76 },
-    // The TV and fridge burn a continuous path across the front of the room.
-    { position: [-1.06, 0.124, -0.34], radius: 1.02, scale: [1.45, 0.58, 1], delay: 1.3, opacity: 0.92 },
-    { position: [-0.48, 0.123, -0.48], radius: 0.78, scale: [1.28, 0.48, 1], delay: 1.55, opacity: 0.7 },
+    // The relocated west-wall TV and fridge burn a continuous path across the room.
+    { position: [-1.72, 0.124, -0.22], radius: 1.02, scale: [1.45, 0.58, 1], delay: 1.3, opacity: 0.92 },
+    { position: [-2.1, 0.123, 0.3], radius: 0.78, scale: [1.28, 0.48, 1], delay: 1.55, opacity: 0.7 },
     { position: [0.18, 0.123, -0.82], radius: 0.9, scale: [1.48, 0.5, 1], delay: 1.78, opacity: 0.78 },
     { position: [0.9, 0.123, -1.14], radius: 0.9, scale: [1.34, 0.62, 1], delay: 2.0, opacity: 0.86 },
     { position: [1.54, 0.122, -1.3], radius: 0.72, scale: [1.14, 0.54, 1], delay: 2.22, opacity: 0.68 },
-    // Living, dining, and storage get broad but irregular trailing patches.
+    // Living, dining, and the east edge get broad but irregular trailing patches.
     { position: [-1.18, 0.124, 0.42], radius: 1.1, scale: [1.28, 0.76, 1], delay: 2.45, opacity: 0.94 },
     { position: [-0.74, 0.123, 0.86], radius: 0.9, scale: [1.36, 0.52, 1], delay: 2.72, opacity: 0.78 },
     { position: [0.1, 0.123, 0.68], radius: 0.82, scale: [1.4, 0.54, 1], delay: 2.92, opacity: 0.72 },
@@ -188,20 +238,24 @@ function FireScorch({ active, reduced }) {
       {marks.map((mark, index) => (
         <mesh
           key={index}
-          position={mark.position}
-          rotation={[-Math.PI / 2, 0, index * 0.38]}
-          scale={mark.scale}
-          renderOrder={2}
+          // Use shallow raised geometry instead of coplanar decals. Its bottom
+          // stays above both the 0.10 slab and 0.11 rug at every camera angle.
+          position={[
+            mark.position[0],
+            0.15 + (index % 4) * 0.001,
+            mark.position[2],
+          ]}
+          rotation={[0, index * 0.38, 0]}
+          scale={[mark.scale[0], 1, mark.scale[1]]}
+          renderOrder={20 + index}
         >
-          <circleGeometry args={[mark.radius, 9]} />
+          <cylinderGeometry args={[mark.radius, mark.radius * 0.96, 0.024, 9]} />
           <meshBasicMaterial
             ref={(material) => (mats.current[index] = material)}
             color={index % 3 === 0 ? '#0b0705' : index % 2 ? '#24110a' : '#140906'}
             transparent
             opacity={0}
             depthWrite={false}
-            polygonOffset
-            polygonOffsetFactor={-2}
           />
         </mesh>
       ))}
@@ -352,27 +406,12 @@ function Roof({ wallColor }) {
       !chimneyMat
     ) return
 
-    const dx = camera.position.x - CAM_TARGET[0]
-    const dy = camera.position.y - CAM_TARGET[1]
-    const dz = camera.position.z - CAM_TARGET[2]
-    const dist = Math.hypot(dx, dy, dz) || 1
-
-    // Polar angle from straight-up (+Y): ~0 = overhead, ~PI/2 = level horizon.
-    const polar = Math.acos(dy / dist)
-
-    // Reveal grows as the camera tilts up (smaller polar) OR zooms in (smaller
-    // dist). Either one alone can clear the roof, so even at a low pitch a
-    // zoom-in opens the interior up.
-    const pitchReveal = clamp01((1.3 - polar) / (1.3 - 0.85)) // 1 by ~49°, 0 by ~74°
-    const zoomReveal = clamp01((13 - dist) / (13 - 8)) // 1 within ~8 units, 0 past ~13
-    const reveal = Math.max(pitchReveal, zoomReveal)
-
-    const target = 1 - reveal
+    const target = roofOpacityForCamera(camera)
     const roofColor = triggered
       ? (protectedByRoof ? ROOF_SCUFFED_COLOR : ROOF_DENTED_COLOR)
       : ROOF_BASE_COLOR
     roofMats.forEach((mat) => {
-      mat.opacity += (target - mat.opacity) * 0.15
+      mat.opacity = THREE.MathUtils.damp(mat.opacity, target, 7, delta)
       mat.color.lerp(roofColor, Math.min(1, delta * 1.25))
     })
     gableMats.forEach((mat) => {
@@ -657,6 +696,532 @@ function Roof({ wallColor }) {
   )
 }
 
+const WING_COLORS = {
+  primary: '#9bbdc4',
+  bedroomTwo: '#d9ad86',
+  bedroomThree: '#b9a9cf',
+  bathroom: '#8bc4bd',
+  hallway: '#d8c7a2',
+  wall: '#eadfc8',
+  trim: '#f8f0df',
+}
+
+function WingWall({ position, size }) {
+  const meshRef = useRef()
+  const materialRef = useRef()
+  const normal = size[0] < size[2] ? [1, 0, 0] : [0, 0, 1]
+
+  useFrame(({ camera }, delta) => {
+    const mesh = meshRef.current
+    const material = materialRef.current
+    if (!mesh || !material) return
+    const target = wallOpacityForCamera(camera, normal, true)
+    material.opacity = THREE.MathUtils.damp(material.opacity, target, 7, delta)
+    mesh.visible = true
+    mesh.castShadow = material.opacity > 0.62
+    mesh.raycast = NOOP_RAYCAST
+  })
+
+  return (
+    <mesh ref={meshRef} position={position} castShadow receiveShadow>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        ref={materialRef}
+        color={WING_COLORS.wall}
+        flatShading
+        transparent
+        opacity={1}
+      />
+    </mesh>
+  )
+}
+
+function WingOuterWall({ normal, position, size }) {
+  const meshRef = useRef()
+  const materialRef = useRef()
+
+  useFrame(({ camera }, delta) => {
+    const mesh = meshRef.current
+    const material = materialRef.current
+    if (!mesh || !material) return
+    const target = wallOpacityForCamera(camera, normal)
+    material.opacity = THREE.MathUtils.damp(material.opacity, target, 7, delta)
+    mesh.visible = true
+    mesh.castShadow = material.opacity > 0.62
+    mesh.raycast = material.opacity < 0.42 ? NOOP_RAYCAST : THREE.Mesh.prototype.raycast
+  })
+
+  return (
+    <mesh ref={meshRef} position={position} castShadow receiveShadow>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        ref={materialRef}
+        color={WING_COLORS.wall}
+        flatShading
+        transparent
+        opacity={1}
+      />
+    </mesh>
+  )
+}
+
+function RoomFloor({ position, size, color }) {
+  return (
+    <mesh position={[position[0], 0.12, position[1]]} receiveShadow>
+      <boxGeometry args={[size[0] - 0.05, 0.035, size[1] - 0.05]} />
+      <meshStandardMaterial color={color} flatShading roughness={0.9} />
+    </mesh>
+  )
+}
+
+/** Open room door whose frame and leaf follow the partition cutaway. */
+function InteriorDoor({
+  position,
+  rotation = 0,
+  swing = 1,
+  width = 0.7,
+  color = '#8f6449',
+}) {
+  const groupRef = useRef()
+  const normal = rotation === 0 ? [0, 0, 1] : [1, 0, 0]
+
+  useFrame(({ camera }, delta) => {
+    const group = groupRef.current
+    if (!group) return
+    const target = wallOpacityForCamera(camera, normal, true)
+    group.traverse((object) => {
+      if (!object.isMesh) return
+      object.castShadow = target > 0.62
+      object.raycast = NOOP_RAYCAST
+      const materials = Array.isArray(object.material) ? object.material : [object.material]
+      materials.forEach((material) => {
+        material.opacity = THREE.MathUtils.damp(material.opacity, target, 7, delta)
+      })
+    })
+  })
+
+  return (
+    <group ref={groupRef} position={position} rotation={[0, rotation, 0]}>
+      {/* Frame aligns with the partition opening. */}
+      {[-width / 2, width / 2].map((x) => (
+        <mesh key={x} position={[x, 0.76, 0]} castShadow>
+          <boxGeometry args={[0.08, 1.52, 0.12]} />
+          <meshStandardMaterial
+            color={WING_COLORS.trim}
+            flatShading
+            transparent
+            opacity={1}
+          />
+        </mesh>
+      ))}
+      <mesh position={[0, 1.52, 0]} castShadow>
+        <boxGeometry args={[width + 0.08, 0.08, 0.12]} />
+        <meshStandardMaterial
+          color={WING_COLORS.trim}
+          flatShading
+          transparent
+          opacity={1}
+        />
+      </mesh>
+
+      {/* Hinge at the left jamb; the leaf swings into the room, clear of the hall. */}
+      <group position={[-width / 2 + 0.04, 0, 0]} rotation={[0, swing * 0.84, 0]}>
+        <mesh position={[width / 2 - 0.06, 0.75, 0]} castShadow>
+          <boxGeometry args={[width - 0.12, 1.42, 0.07]} />
+          <meshStandardMaterial color={color} flatShading transparent opacity={1} />
+        </mesh>
+        <mesh position={[width - 0.2, 0.77, 0.055]} castShadow>
+          <sphereGeometry args={[0.045, 8, 8]} />
+          <meshStandardMaterial
+            color="#d9b65c"
+            metalness={0.35}
+            roughness={0.35}
+            transparent
+            opacity={1}
+          />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+function Bed({ position, color, size = [1.05, 1.42], rotation = 0 }) {
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      <mesh position={[0, 0.22, 0]} castShadow>
+        <boxGeometry args={[size[0], 0.28, size[1]]} />
+        <meshStandardMaterial color="#76523b" flatShading />
+      </mesh>
+      <mesh position={[0, 0.41, 0.04]} castShadow>
+        <boxGeometry args={[size[0] * 0.92, 0.18, size[1] * 0.86]} />
+        <meshStandardMaterial color="#f4ead7" flatShading />
+      </mesh>
+      <mesh position={[0, 0.52, 0.2]} castShadow>
+        <boxGeometry args={[size[0] * 0.94, 0.12, size[1] * 0.46]} />
+        <meshStandardMaterial color={color} flatShading />
+      </mesh>
+      <mesh position={[0, 0.55, -size[1] * 0.3]} castShadow>
+        <boxGeometry args={[size[0] * 0.56, 0.12, size[1] * 0.18]} />
+        <meshStandardMaterial color="#fff8e9" flatShading />
+      </mesh>
+      <mesh position={[0, 0.62, -size[1] / 2 + 0.04]} castShadow>
+        <boxGeometry args={[size[0] + 0.08, 0.9, 0.1]} />
+        <meshStandardMaterial color="#6b4936" flatShading />
+      </mesh>
+    </group>
+  )
+}
+
+function Toilet({ position, rotation = 0 }) {
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      <mesh position={[0, 0.27, 0.04]} castShadow>
+        <cylinderGeometry args={[0.26, 0.2, 0.36, 10]} />
+        <meshStandardMaterial color="#f4f1e8" flatShading />
+      </mesh>
+      <mesh position={[0, 0.48, -0.08]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <torusGeometry args={[0.2, 0.055, 6, 12]} />
+        <meshStandardMaterial color="#ffffff" flatShading />
+      </mesh>
+      <mesh position={[0, 0.67, -0.23]} castShadow>
+        <boxGeometry args={[0.46, 0.5, 0.18]} />
+        <meshStandardMaterial color="#efeadf" flatShading />
+      </mesh>
+    </group>
+  )
+}
+
+function Vanity({ position, rotation = 0 }) {
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      <mesh position={[0, 0.38, 0]} castShadow>
+        <boxGeometry args={[0.66, 0.72, 0.38]} />
+        <meshStandardMaterial color="#6e8f8a" flatShading />
+      </mesh>
+      <mesh position={[0, 0.77, 0]} castShadow>
+        <boxGeometry args={[0.72, 0.08, 0.44]} />
+        <meshStandardMaterial color="#f6f3e9" flatShading />
+      </mesh>
+      <mesh position={[0, 0.81, 0.02]} castShadow>
+        <cylinderGeometry args={[0.19, 0.19, 0.055, 12]} />
+        <meshStandardMaterial color="#9fdbe4" flatShading />
+      </mesh>
+    </group>
+  )
+}
+
+function Bathtub({ position }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.32, 0]} castShadow>
+        <boxGeometry args={[1.08, 0.46, 1.42]} />
+        <meshStandardMaterial color="#f4f1e8" flatShading />
+      </mesh>
+      <mesh position={[0, 0.57, 0]}>
+        <boxGeometry args={[0.84, 0.08, 1.16]} />
+        <meshStandardMaterial
+          color="#86d4df"
+          emissive="#4f9fb1"
+          emissiveIntensity={0.08}
+          roughness={0.3}
+        />
+      </mesh>
+      <mesh position={[0.38, 0.72, -0.48]} rotation={[0, 0, -0.55]} castShadow>
+        <cylinderGeometry args={[0.035, 0.035, 0.36, 8]} />
+        <meshStandardMaterial color="#aeb8bc" metalness={0.55} roughness={0.35} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Clickable bathroom supply line. The pipe itself owns the water-loss trigger. */
+function WaterSupplyTarget() {
+  const triggered = useGameStore((s) => !!s.triggered.water)
+  const protectedByPrevention = useGameStore((s) => !!s.preventions.water)
+  const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
+  const trigger = useGameStore((s) => s.triggerDisaster)
+  const valveMatRef = useRef()
+  const sensorMatRef = useRef()
+  const { hovered, bind } = useClickable(
+    () => trigger('water'),
+    triggered || acknowledgementRequired
+  )
+
+  useFrame((state, delta) => {
+    const pulse = 0.16 + Math.sin(state.clock.elapsedTime * 2.8) * 0.08
+    if (valveMatRef.current) {
+      const target = triggered ? 0.85 : hovered ? 0.72 : pulse
+      valveMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
+        valveMatRef.current.emissiveIntensity,
+        target,
+        delta * 8
+      )
+    }
+    if (sensorMatRef.current) {
+      sensorMatRef.current.emissiveIntensity = protectedByPrevention
+        ? 0.55 + Math.sin(state.clock.elapsedTime * 3) * 0.12
+        : 0.04
+    }
+  })
+
+  return (
+    <group position={[8.68, 0, -1.55]} {...bind}>
+      <Vanity position={[0, 0, 0]} rotation={Math.PI / 2} />
+      {/* Exposed braided line and valve make the risk object recognizable. */}
+      <mesh position={[0, 0.48, 0.22]} rotation={[0, 0, -0.18]} castShadow>
+        <cylinderGeometry args={[0.035, 0.035, 0.58, 8]} />
+        <meshStandardMaterial color="#aeb8bc" metalness={0.55} roughness={0.42} />
+      </mesh>
+      <mesh position={[0.05, 0.27, 0.24]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <torusGeometry args={[0.11, 0.035, 6, 12]} />
+        <meshStandardMaterial
+          ref={valveMatRef}
+          color={triggered ? '#248fbc' : '#da5a46'}
+          emissive={triggered ? '#69d9ff' : '#ff765d'}
+          emissiveIntensity={0.16}
+          flatShading
+        />
+      </mesh>
+      {/* Prevention becomes a visible green puck beside the line. */}
+      {protectedByPrevention && (
+        <mesh position={[-0.25, 0.17, 0.28]} castShadow>
+          <cylinderGeometry args={[0.14, 0.16, 0.09, 10]} />
+          <meshStandardMaterial
+            ref={sensorMatRef}
+            color="#4cb96b"
+            emissive="#70e58c"
+            emissiveIntensity={0.55}
+            flatShading
+          />
+        </mesh>
+      )}
+      {hovered && (
+        <DisasterTargetCue position={[0, 1.25, 0]} color="#62d7ef" radius={0.42} />
+      )}
+    </group>
+  )
+}
+
+/** Lower attached gable: visually completes the wing, then clears for cutaway play. */
+function WingRoof() {
+  const roofRefs = useRef([])
+  const roofMatRefs = useRef([])
+  const gableRefs = useRef([])
+  const gableMatRefs = useRef([])
+  const triggered = useGameStore((s) => !!s.triggered.hail)
+  const protectedByRoof = useGameStore((s) => !!s.preventions.hail)
+  const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
+  const trigger = useGameStore((s) => s.triggerDisaster)
+  const { hovered, bind } = useClickable(
+    () => trigger('hail'),
+    triggered || acknowledgementRequired
+  )
+
+  useFrame(({ camera }, delta) => {
+    const roofMaterials = roofMatRefs.current.filter(Boolean)
+    const gableMaterials = gableMatRefs.current.filter(Boolean)
+    if (!roofMaterials.length) return
+
+    const opacityTarget = roofOpacityForCamera(camera)
+    const roofColor = triggered
+      ? (protectedByRoof ? ROOF_SCUFFED_COLOR : ROOF_DENTED_COLOR)
+      : ROOF_BASE_COLOR
+
+    roofMaterials.forEach((material) => {
+      material.opacity = THREE.MathUtils.damp(material.opacity, opacityTarget, 7, delta)
+      material.color.lerp(roofColor, Math.min(1, delta * 1.25))
+      material.emissiveIntensity = THREE.MathUtils.lerp(
+        material.emissiveIntensity,
+        hovered ? 0.5 : 0,
+        0.2
+      )
+    })
+    gableMaterials.forEach((material) => {
+      material.opacity = THREE.MathUtils.damp(material.opacity, opacityTarget, 7, delta)
+    })
+
+    const solid = roofMaterials[0].opacity > 0.5
+    ;[...roofRefs.current, ...gableRefs.current].forEach((piece) => {
+      if (!piece) return
+      // A thresholded roof shadow made the whole wing brighten/darken abruptly.
+      // The attached roof is small enough to omit that shadow for a stable cutaway.
+      piece.castShadow = false
+      piece.raycast = solid ? THREE.Mesh.prototype.raycast : NOOP_RAYCAST
+    })
+  })
+
+  const gableShape = new THREE.Shape()
+    .moveTo(-WING_ROOF_RUN, 0)
+    .lineTo(WING_ROOF_RUN, 0)
+    .lineTo(0, WING_ROOF_RISE)
+    .closePath()
+
+  return (
+    <group>
+      {[-1, 1].map((side, index) => (
+        <mesh
+          key={`wing-roof-${side}`}
+          ref={(element) => (roofRefs.current[index] = element)}
+          position={[
+            WING_ROOF_CENTER_X,
+            WING_ROOF_BASE + WING_ROOF_RISE / 2,
+            side * WING_ROOF_RUN / 2,
+          ]}
+          rotation={[side < 0 ? -WING_ROOF_SLOPE : WING_ROOF_SLOPE, 0, 0]}
+          castShadow={false}
+          renderOrder={10}
+          {...bind}
+        >
+          <boxGeometry
+            args={[WING_ROOF_WIDTH, 0.16, WING_ROOF_PANEL_LENGTH]}
+          />
+          <meshStandardMaterial
+            ref={(material) => (roofMatRefs.current[index] = material)}
+            color={COLORS.roof}
+            emissive="#ffcaa0"
+            emissiveIntensity={0}
+            flatShading
+            transparent
+            opacity={1}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+
+      {[1].map((side, index) => (
+        <mesh
+          key={`wing-gable-${side}`}
+          ref={(element) => (gableRefs.current[index] = element)}
+          position={[WING_ROOF_X_MAX, WING_ROOF_BASE, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          castShadow={false}
+          renderOrder={9}
+          {...bind}
+        >
+          <shapeGeometry args={[gableShape]} />
+          <meshStandardMaterial
+            ref={(material) => (gableMatRefs.current[index] = material)}
+            color={WING_COLORS.wall}
+            flatShading
+            side={THREE.DoubleSide}
+            transparent
+            opacity={1}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+
+      {hovered && (
+        <DisasterTargetCue
+          position={[WING_ROOF_CENTER_X, WING_ROOF_BASE + WING_ROOF_RISE + 0.42, 0]}
+          radius={1.55}
+        />
+      )}
+    </group>
+  )
+}
+
+/**
+ * Roofed cutaway wing. A generous central hall and color-blocked rooms make the
+ * 3BR/1BA plan legible without changing the original core or disaster geometry.
+ */
+function BedroomWing() {
+  return (
+    <group>
+      <mesh position={[WING_CENTER_X, -0.05, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WING_WIDTH + 0.3, 0.3, WING_DEPTH + 0.45]} />
+        <meshStandardMaterial color="#a89b80" flatShading />
+      </mesh>
+      <mesh position={[WING_CENTER_X, 0.05, 0]} receiveShadow>
+        <boxGeometry args={[WING_WIDTH, 0.1, WING_DEPTH]} />
+        <meshStandardMaterial color="#c6ad86" flatShading />
+      </mesh>
+
+      {/* Floor-color zoning is the wing's visual floor-plan key. */}
+      <RoomFloor position={[4.02, -1.98]} size={[2.42, 2.8]} color={WING_COLORS.bedroomTwo} />
+      <RoomFloor position={[6.47, -1.98]} size={[2.42, 2.8]} color={WING_COLORS.bedroomThree} />
+      <RoomFloor position={[8.65, 0]} size={[1.86, 6.7]} color={WING_COLORS.bathroom} />
+      <RoomFloor position={[5.25, 0.05]} size={[4.85, 1.15]} color={WING_COLORS.hallway} />
+      <RoomFloor position={[5.25, 2.03]} size={[4.85, 2.7]} color={WING_COLORS.primary} />
+
+      {/* Connected perimeter walls use the same near-wall cutaway as the core. */}
+      <WingOuterWall normal={[1, 0, 0]} position={[WING_X_MAX, 1.16, 0]} size={[0.12, 2.32, WING_DEPTH]} />
+      <WingOuterWall normal={[0, 0, -1]} position={[WING_CENTER_X, 1.16, -WING_DEPTH / 2]} size={[WING_WIDTH, 2.32, 0.12]} />
+      <WingOuterWall normal={[0, 0, 1]} position={[WING_CENTER_X, 1.16, WING_DEPTH / 2]} size={[WING_WIDTH, 2.32, 0.12]} />
+      <WingOuterWall normal={[-1, 0, 0]} position={[WING_X_MIN, 1.16, -2.75]} size={[0.12, 2.32, 1.3]} />
+      <WingOuterWall normal={[-1, 0, 0]} position={[WING_X_MIN, 1.16, 2.75]} size={[0.12, 2.32, 1.3]} />
+
+      {/* Low connected partitions stop at a broad, furniture-free central hall. */}
+      <WingWall position={[5.25, 0.78, -1.98]} size={[0.1, 1.56, 2.8]} />
+      {/* The shared bathroom occupies the full east bay, with one hall opening. */}
+      <WingWall position={[7.7, 0.78, -1.98]} size={[0.1, 1.56, 2.8]} />
+      <WingWall position={[7.7, 0.78, 2.03]} size={[0.1, 1.56, 2.7]} />
+
+      {/* North room wall, segmented into three properly aligned door openings. */}
+      <WingWall position={[3.36, 0.78, -0.55]} size={[1.12, 1.56, 0.1]} />
+      <WingWall position={[4.96, 0.78, -0.55]} size={[0.58, 1.56, 0.1]} />
+      <WingWall position={[5.74, 0.78, -0.55]} size={[0.98, 1.56, 0.1]} />
+      <WingWall position={[7.3, 0.78, -0.55]} size={[0.8, 1.56, 0.1]} />
+
+      {/* South suite wall uses two wide openings off the same hallway. */}
+      <WingWall position={[3.98, 0.78, 0.65]} size={[2.35, 1.56, 0.1]} />
+      <WingWall position={[6.75, 0.78, 0.65]} size={[1.9, 1.56, 0.1]} />
+
+      {/* Every room has a visible open door, swung away from the hallway. */}
+      <InteriorDoor position={[4.295, 0.13, -0.55]} width={0.7} swing={1} color="#a9624f" />
+      <InteriorDoor position={[6.565, 0.13, -0.55]} width={0.62} swing={1} color="#786398" />
+      <InteriorDoor position={[5.48, 0.13, 0.65]} width={0.58} swing={-1} color="#527e89" />
+      <InteriorDoor
+        position={[7.7, 0.13, 0.05]}
+        rotation={Math.PI / 2}
+        width={1.04}
+        swing={-1}
+        color="#5d8f89"
+      />
+
+      {/* This frame sits in the east-wall plane around the real wall opening. */}
+      <group position={[WING_X_MIN + 0.012, 0.95, 0]}>
+        <mesh position={[0, 0.95, 0]} castShadow>
+          <boxGeometry args={[0.14, 0.12, 1.42]} />
+          <meshStandardMaterial color={WING_COLORS.trim} flatShading />
+        </mesh>
+        {[-0.68, 0.68].map((z) => (
+          <mesh key={z} position={[0, 0, z]} castShadow>
+            <boxGeometry args={[0.14, 1.9, 0.1]} />
+            <meshStandardMaterial color={WING_COLORS.trim} flatShading />
+          </mesh>
+        ))}
+        <mesh position={[0, -0.92, 0]} receiveShadow>
+          <boxGeometry args={[0.16, 0.04, 1.42]} />
+          <meshStandardMaterial color="#a8835c" flatShading />
+        </mesh>
+      </group>
+
+      <Bed position={[4.02, 0.12, -2.15]} color="#cf765e" size={[1.4, 1.85]} />
+      <Bed position={[6.47, 0.12, -2.15]} color="#8873ac" size={[1.4, 1.85]} />
+      <Bed position={[5.1, 0.12, 2.1]} rotation={Math.PI / 2} color="#4f8997" size={[1.85, 2.2]} />
+
+      <WaterSupplyTarget />
+      <Toilet position={[9.15, 0.12, -1.05]} rotation={-Math.PI / 2} />
+      <Bathtub position={[8.68, 0.12, 2.2]} />
+
+      {/* Small wardrobes make the sleeping rooms read even when beds are foreshortened. */}
+      {[3.18, 5.63].map((x, index) => (
+        <mesh key={x} position={[x, 0.72, -2.98]} castShadow>
+          <boxGeometry args={[0.58, 1.2, 0.34]} />
+          <meshStandardMaterial color={index ? '#735e82' : '#8d6045'} flatShading />
+        </mesh>
+      ))}
+      <mesh position={[3.25, 0.75, 2.92]} castShadow>
+        <boxGeometry args={[0.46, 1.28, 0.9]} />
+        <meshStandardMaterial color="#55727a" flatShading />
+      </mesh>
+
+      <WingRoof />
+    </group>
+  )
+}
+
 export default function House() {
   const fireActive = useGameStore((s) => !!s.triggered.fire)
   const fireReduced = useGameStore((s) => !!s.preventions.fire)
@@ -675,9 +1240,11 @@ export default function House() {
         <meshStandardMaterial color={COLORS.floor} flatShading />
       </mesh>
 
+      <BedroomWing />
+
       {/* Rug in the living area */}
-      <mesh position={[-0.55, 0.11, 0.55]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[2.4, 1.8]} />
+      <mesh position={[-1.05, 0.11, 0.68]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[3, 2.15]} />
         <meshStandardMaterial color={COLORS.rug} />
       </mesh>
 
@@ -816,7 +1383,7 @@ const TV_BASE_COLORS = [
 ]
 
 /** A compact TV console faces the sofa and visibly chars when fire reaches it. */
-function Television() {
+function Television({ position, rotation }) {
   const fireActive = useGameStore((s) => !!s.triggered.fire)
   const fireReduced = useGameStore((s) => !!s.preventions.fire)
   const burnMats = useRef([])
@@ -868,7 +1435,7 @@ function Television() {
   })
 
   return (
-    <group position={[-1.15, 0, -0.78]}>
+    <group position={position} rotation={rotation}>
       {/* Low media console */}
       <mesh position={[0, 0.28, 0]} castShadow>
         <boxGeometry args={[1.4, 0.48, 0.38]} />
@@ -901,17 +1468,17 @@ function Television() {
         </mesh>
       ))}
 
-      {/* Rear-panel scorch decals face the stove and grow as the fire spreads. */}
+      {/* Room-facing scorch decals grow as the fire reaches the relocated TV. */}
       {[
-        { position: [-0.28, 1.02, -0.096], radius: 0.42, scale: [1.15, 0.92, 1] },
-        { position: [0.32, 0.84, -0.097], radius: 0.34, scale: [0.9, 1.18, 1] },
-        { position: [-0.18, 0.3, -0.196], radius: 0.42, scale: [1.45, 0.66, 1] },
+        { position: [-0.28, 1.02, 0.042], radius: 0.42, scale: [1.15, 0.92, 1] },
+        { position: [0.32, 0.84, 0.042], radius: 0.34, scale: [0.9, 1.18, 1] },
+        { position: [-0.18, 0.3, 0.23], radius: 0.42, scale: [1.45, 0.66, 1] },
       ].map((mark, index) => (
         <mesh
           key={`tv-scorch-${index}`}
           ref={(mesh) => (scorchMeshes.current[index] = mesh)}
           position={mark.position}
-          rotation={[0, Math.PI, index * 0.4]}
+          rotation={[0, 0, index * 0.4]}
           scale={mark.scale}
           renderOrder={3}
         >
@@ -963,8 +1530,8 @@ function Furniture() {
       {/* Living area: turn the sofa toward the TV across the coffee table. */}
       <InteriorModel
         asset="/models/house-interior/Couch Small-X9msj0gtb5.glb"
-        position={[-1.15, 0, 1.1]}
-        rotation={[0, Math.PI, 0]}
+        position={[-0.45, 0, 0.68]}
+        rotation={[0, -Math.PI / 2, 0]}
         scale={0.55}
         burnActive={fireActive && !fireReduced}
         burnStrength={0.88}
@@ -972,7 +1539,7 @@ function Furniture() {
       />
       <InteriorModel
         asset="/models/house-interior/Table Round Small.glb"
-        position={[-1.15, 0.02, 0.05]}
+        position={[-1.42, 0.02, 0.68]}
         scale={0.43}
         burnActive={fireActive && !fireReduced}
         burnStrength={0.58}
@@ -980,13 +1547,16 @@ function Furniture() {
       />
       <InteriorModel
         asset="/models/house-interior/Lamp.glb"
-        position={[-2.3, 0, 0.7]}
+        position={[-2.25, 0, 1.55]}
         scale={1.3}
         burnActive={fireActive && !fireReduced}
         burnStrength={0.68}
         burnDelay={3.2}
       />
-      <Television />
+      <Television
+        position={[-2.35, 0, 0.45]}
+        rotation={[0, Math.PI / 2, 0]}
+      />
 
       {/* Dining nook: two chairs make the round table read as intentional. */}
       <InteriorModel
@@ -1023,16 +1593,7 @@ function Furniture() {
         burnDelay={3.42}
       />
 
-      {/* Tall storage and plant life give the exposed side of the house depth. */}
-      <InteriorModel
-        asset="/models/house-interior/Shelf Large.glb"
-        position={[2.55, 0, -0.15]}
-        rotation={[0, Math.PI / 2, 0]}
-        scale={0.36}
-        burnActive={fireActive && !fireReduced}
-        burnStrength={0.78}
-        burnDelay={3.5}
-      />
+      {/* Plant life gives the exposed side of the living room depth. */}
       <InteriorModel
         asset="/models/house-interior/Houseplant-VtJh4Irl4w.glb"
         position={[2.1, 0, 1.25]}

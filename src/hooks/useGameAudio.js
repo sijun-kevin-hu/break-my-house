@@ -2,6 +2,48 @@ import { useEffect, useRef } from "react";
 import useSound from "./useSound";
 import { useGameStore } from "../store/useGameStore";
 
+function createWaterBurst(duration) {
+  if (typeof window === "undefined") return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  const context = new AudioContextClass();
+  const frameCount = Math.ceil(context.sampleRate * duration);
+  const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+  const samples = buffer.getChannelData(0);
+  let seed = 1729;
+  for (let index = 0; index < frameCount; index += 1) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const noise = (seed / 4294967295) * 2 - 1;
+    const progress = index / frameCount;
+    const envelope = Math.min(1, progress * 18) * Math.pow(1 - progress, 0.42);
+    samples[index] = noise * envelope;
+  }
+
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  source.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.value = 1450;
+  filter.Q.value = 0.45;
+  gain.gain.value = 0.16;
+  source.connect(filter).connect(gain).connect(context.destination);
+  source.start();
+  source.stop(context.currentTime + duration);
+
+  return {
+    stop() {
+      try {
+        source.stop();
+      } catch {
+        // The one-shot already reached its authored end.
+      }
+      context.close().catch(() => {});
+    },
+  };
+}
+
 export default function useGameAudio() {
   const triggered = useGameStore((state) => state.triggered);
   const preventions = useGameStore((state) => state.preventions);
@@ -30,6 +72,7 @@ export default function useGameAudio() {
 
   const previousTriggered = useRef({});
   const previousPreventions = useRef({});
+  const waterBurst = useRef(null);
 
   useEffect(() => {
     const previous = previousTriggered.current;
@@ -50,6 +93,16 @@ export default function useGameAudio() {
     if (!triggered?.fire && previous.fire) {
       fireSound.stop();
       fireLoopSound.stop();
+    }
+
+    if (triggered?.water && !previous.water) {
+      waterBurst.current?.stop();
+      waterBurst.current = createWaterBurst(preventions?.water ? 0.85 : 2.65);
+    }
+
+    if (!triggered?.water && previous.water) {
+      waterBurst.current?.stop();
+      waterBurst.current = null;
     }
 
     if (
@@ -94,6 +147,7 @@ export default function useGameAudio() {
       fireLoopSound.stop();
       treeSound.stop();
       successSound.stop();
+      waterBurst.current?.stop();
     };
   }, []);
 

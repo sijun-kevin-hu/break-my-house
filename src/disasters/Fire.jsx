@@ -5,20 +5,20 @@ import { useGameStore } from '../store/useGameStore'
 // Anchored at the kitchen stove (back-left corner) so the fire reads as coming
 // straight off the burners the player clicked.
 const STOVE = [-1.78, -1.45] // [x, z]
-const TV = [-1.15, -0.9]
+const TV = [-2.35, 0.45]
 const FLAMES = [
   { position: [STOVE[0], 1.35, STOVE[1]], delay: 0, size: 1.2 },
   { position: [STOVE[0] - 0.22, 1.45, STOVE[1] + 0.12], delay: 0, size: 1 },
   { position: [STOVE[0] + 0.22, 1.32, STOVE[1] - 0.1], delay: 0, size: 1.08 },
   { position: [-0.58, 1.15, -1.42], delay: 0.72, size: 0.7 },
   { position: [-0.28, 1.08, -1.42], delay: 0.92, size: 0.62 },
-  { position: [TV[0] - 0.32, 0.76, TV[1]], delay: 1.25, size: 0.82 },
-  { position: [TV[0] + 0.12, 0.9, TV[1] - 0.04], delay: 1.42, size: 0.72 },
-  { position: [TV[0] + 0.4, 0.7, TV[1]], delay: 1.6, size: 0.62 },
+  { position: [TV[0] + 0.18, 0.76, TV[1] - 0.42], delay: 1.25, size: 0.82 },
+  { position: [TV[0] + 0.2, 0.9, TV[1]], delay: 1.42, size: 0.72 },
+  { position: [TV[0] + 0.18, 0.7, TV[1] + 0.4], delay: 1.6, size: 0.62 },
   { position: [1.72, 1.05, -1.42], delay: 2.05, size: 0.72 },
   { position: [1.93, 1.55, -1.42], delay: 2.22, size: 0.58 },
-  { position: [-1.25, 0.84, 1.04], delay: 2.55, size: 0.8 },
-  { position: [-0.88, 0.74, 1.12], delay: 2.78, size: 0.62 },
+  { position: [-0.58, 0.84, 0.42], delay: 2.55, size: 0.8 },
+  { position: [-0.52, 0.74, 0.92], delay: 2.78, size: 0.62 },
   { position: [1.18, 0.92, 0.55], delay: 3.05, size: 0.75 },
   { position: [1.48, 0.78, 0.55], delay: 3.22, size: 0.58 },
   { position: [2.48, 1.05, -0.12], delay: 3.5, size: 0.66 },
@@ -28,14 +28,14 @@ const SPREAD_LIGHTS = [
   { position: [-0.45, 1.55, -1.4], delay: 0.72, distance: 4.2 },
   { position: [TV[0], 1.35, TV[1]], delay: 1.25, distance: 4.4 },
   { position: [1.72, 1.65, -1.42], delay: 2.05, distance: 4.1 },
-  { position: [-1.15, 1.5, 1.05], delay: 2.55, distance: 4.4 },
+  { position: [-0.55, 1.5, 0.68], delay: 2.55, distance: 4.4 },
   { position: [1.2, 1.5, 0.55], delay: 3.05, distance: 4.2 },
   { position: [2.45, 1.6, -0.12], delay: 3.5, distance: 3.8 },
 ]
 
 /**
  * Choreographed interior fire: the stove bursts first, then the counter, TV,
- * fridge, living area, and storage ignite in a readable sequence. Prevention
+ * fridge, living area, and east wall ignite in a readable sequence. Prevention
  * stops that sequence at the stove and leaves only a small contained event.
  */
 export default function Fire() {

@@ -17,7 +17,7 @@ export const COVERAGE_DEMO = {
   avoidedDamageSuffix: 'in estimated damage',
   avoidedDamageDetail: 'Compared with the unprotected scenario.',
   introSummary:
-    'Explore a small house, trigger a disaster, and compare the full uninsured cost with an illustrative covered outcome using a $1,000 demo deductible.',
+    'Explore a roomy three-bedroom, one-bath home, trigger a disaster, and compare the full uninsured cost with an illustrative covered outcome using a $1,000 demo deductible.',
   disclaimer:
     'Illustrative only. Assumes a covered loss, a $1,000 demo deductible, and sufficient policy limits. Your policy and deductible may differ.',
 }
@@ -53,6 +53,22 @@ export const DISASTERS = {
     preventionTip:
       'Working smoke detectors cut fire deaths in half and catch fires while they are still small.',
   },
+  water: {
+    id: 'water',
+    label: 'Bathroom Water Loss',
+    emoji: '💧',
+    effectDuration: 3600,
+    resultDelay: 1900,
+    riskWeight: 20,
+    whatHappened:
+      'A bathroom supply line split and sent water across the floor and into the nearby walls.',
+    repairEstimate: 18000,
+    repairEstimateReduced: 2500,
+    prevention: 'Leak sensor + automatic shutoff',
+    preventionIds: ['water'],
+    preventionTip:
+      'Place leak sensors near bathroom and appliance supply lines. An automatic shutoff can stop the flow before water spreads through the home.',
+  },
   tree: {
     id: 'tree',
     label: 'Fallen Tree',
@@ -84,5 +100,6 @@ export const DISASTER_LIST = Object.values(DISASTERS)
 export const PREVENTIONS = [
   { id: 'hail', disasterId: 'hail', emoji: '🌨️', label: 'Impact-resistant roofing' },
   { id: 'fire', disasterId: 'fire', emoji: '🔥', label: 'Smoke detectors + extinguisher' },
+  { id: 'water', disasterId: 'water', emoji: '💧', label: 'Leak sensor + automatic shutoff' },
   { id: 'removeTree', disasterId: 'tree', emoji: '🪵', label: 'Remove hazardous tree' },
 ]

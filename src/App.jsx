@@ -21,7 +21,7 @@ export default function App() {
       <Canvas
         shadows="soft"
         dpr={[1, 2]}
-        camera={{ position: [8, 6.4, 10], fov: 40 }}
+        camera={{ position: [11.5, 9.5, 13], fov: 42 }}
       >
         <Scene />
       </Canvas>

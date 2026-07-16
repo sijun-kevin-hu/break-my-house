@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/useGameStore'
 import Hail from './Hail'
 import Fire from './Fire'
+import WaterLeak from './WaterLeak'
 
 /**
  * Mounts a visual effect for every triggered disaster. Effects stay mounted —
@@ -16,6 +17,7 @@ import Fire from './Fire'
 const EFFECTS = {
   hail: Hail,
   fire: Fire,
+  water: WaterLeak,
 }
 
 export default function DisasterEffects() {

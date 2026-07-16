@@ -52,7 +52,7 @@ src/
 ├── data/disasters.js        # Content and prevention configuration
 ├── store/useGameStore.js    # Single game-state store
 ├── scene/                   # House, tree, ground, camera, click affordances
-├── disasters/               # Hail and fire visual effects
+├── disasters/               # Hail, fire, and water-loss visual effects
 ├── hooks/                   # Audio integration
 ├── ui/                      # HTML overlay only
 └── styles/ui.css
@@ -64,8 +64,8 @@ must be present and clickable before the tree disaster is triggered.
 ## Gameplay invariants
 
 - The only state transition for a disaster is `triggerDisaster(id)`.
-- Trigger objects are: roof → `hail`, stove → `fire`, backyard tree/stump →
-  `tree`. Do not add disaster buttons to the toolbar.
+- Trigger objects are: roof → `hail`, stove → `fire`, bathroom supply line →
+  `water`, backyard tree/stump → `tree`. Do not add disaster buttons to the toolbar.
 - Starting a disaster locks every scene trigger until its result panel is
   acknowledged with “Got it”; camera controls must remain available during this lock.
 - Snapshot prevention when a disaster starts. A player cannot turn on
@@ -83,6 +83,13 @@ must be present and clickable before the tree disaster is triggered.
   short windows; keep their acknowledgement action reachable while scrolling.
 - The Sims cutaway is a rendering concern. Near walls and roof pieces fade or
   hide without preventing an interior target from being clicked.
+- Core and wing exterior walls share one house-centered, pitch-aware opacity
+  calculation. Keep fading meshes mounted at zero opacity to avoid angle-edge popping.
+- Wing partitions and their doors use the same pitch/zoom reveal with two-sided
+  angle fading, so interior targets stay readable from either side of a room.
+- Core and wing roof sections share one pitch/zoom opacity calculation. The wing
+  meets the original eave at one non-overlapping seam; its fading materials disable
+  depth writes and thresholded shadows to prevent angle-dependent popping.
 - Use `useClickable` and the non-raycastable `DisasterTargetCue` for a new
   scene trigger so hover halo, pointer cursor, event
   propagation, and disabled behavior stay consistent.
@@ -97,7 +104,8 @@ must be present and clickable before the tree disaster is triggered.
   attribution file and preload new GLBs in `InteriorModel.jsx`.
 - Audio is loaded from `public/audio/`. If audio filenames change, update
   `useGameAudio.js` in the same change. The current expected names are
-  `hail.mp3`, `fire.mp3`, `tree-crash.mp3`, and `success.mp3`.
+  `hail.mp3`, `fire.mp3`, `fire-loop.mp3`, `tree.mp3`, and `success.mp3`.
+  The water-loss burst is a short seeded Web Audio effect and has no asset file.
 
 ## Adding a disaster
 

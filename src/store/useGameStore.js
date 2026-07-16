@@ -14,7 +14,7 @@ const getDisasterOutcome = (preventions, disasterId) => {
  * Single source of truth for game state.
  *
  * Disasters are triggered by clicking their object in the scene (roof, stove,
- * backyard tree) and then PERSIST — the effect keeps running and the damage
+ * bathroom supply line, backyard tree) and then PERSIST — the effect keeps running and the damage
  * stays — until the player hits "Reset house". Players acknowledge each result
  * before they can start the next disaster.
  *

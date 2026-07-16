@@ -3,7 +3,7 @@ import { PREVENTIONS } from '../data/disasters'
 
 /**
  * Bottom toolbar. Disasters are triggered by clicking objects in the scene
- * (roof, stove, backyard tree) — NOT from here. This panel only holds the
+ * (roof, stove, bathroom supply line, backyard tree) — NOT from here. This panel only holds the
  * prevention toggles and the reset button.
  */
 export default function Toolbar() {
@@ -15,7 +15,8 @@ export default function Toolbar() {
   return (
     <div className="toolbar">
       <p className="toolbar-hint">
-        🖱️ Click the <strong>roof</strong>, <strong>stove</strong>, or{' '}
+        🖱️ Click the <strong>roof</strong>, <strong>stove</strong>,{' '}
+        <strong>bathroom pipe</strong>, or{' '}
         <strong>{preventions.removeTree ? 'stump' : 'tree'}</strong> to test a disaster.
       </p>
 
