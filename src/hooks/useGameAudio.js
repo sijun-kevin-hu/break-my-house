@@ -168,6 +168,10 @@ export default function useGameAudio() {
     loop: true,
   });
 
+  const electricalFireSound = useSound("/audio/fire.mp3", {
+    volume: 0.65,
+  });
+
   const treeSound = useSound("/audio/tree.mp3", {
     volume: 0.8,
   });
@@ -242,6 +246,9 @@ export default function useGameAudio() {
     if (triggered?.electrical && !previous.electrical) {
       electricalArc.current?.stop();
       electricalArc.current = createElectricalArc(!!preventions?.electrical);
+      if (!preventions?.electrical) {
+        electricalFireSound.play();
+      }
       const hasSmokeAlarm = DISASTERS.electrical.smokeAlarmPreventionIds?.some(
         (id) => preventions?.[id]
       );
@@ -264,6 +271,7 @@ export default function useGameAudio() {
       electricalSmokeAlarmTimeout.current = null;
       electricalArc.current?.stop();
       electricalArc.current = null;
+      electricalFireSound.stop();
       smokeAlarm.current?.stop();
       smokeAlarm.current = null;
     }
@@ -302,6 +310,7 @@ export default function useGameAudio() {
       hailSound.stop();
       fireSound.stop();
       fireLoopSound.stop();
+      electricalFireSound.stop();
       window.clearTimeout(protectedFireTimeout.current);
       window.clearTimeout(electricalSmokeAlarmTimeout.current);
       smokeAlarm.current?.stop();
