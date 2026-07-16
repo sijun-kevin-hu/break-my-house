@@ -102,7 +102,9 @@ export const DISASTERS = {
     label: 'Bathroom Water Loss',
     emoji: '💧',
     effectDuration: 9000,
-    resultDelay: 6500,
+    // Let the initial jets and all four puddles establish, then surface the
+    // financial explanation promptly instead of holding the interaction lock.
+    resultDelay: 2000,
     reducedResultDelay: 1900,
     sprayPersistsUntilReset: true,
     sprayDurationReduced: 1.35,
