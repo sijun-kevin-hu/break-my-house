@@ -172,6 +172,11 @@ export default function useGameAudio() {
     volume: 0.65,
   });
 
+  const birdAmbience = useSound("/audio/birds.mp3", {
+    volume: 0.32,
+    loop: true,
+  });
+
   const treeSound = useSound("/audio/tree.mp3", {
     volume: 0.8,
   });
@@ -190,6 +195,14 @@ export default function useGameAudio() {
 
   useEffect(() => {
     const previous = previousTriggered.current;
+    const disasterActive = Object.values(triggered || {}).some(Boolean);
+    const disasterWasActive = Object.values(previous).some(Boolean);
+
+    if (disasterActive) {
+      birdAmbience.stop();
+    } else if (disasterWasActive) {
+      birdAmbience.play();
+    }
 
     if (triggered?.hail && !previous.hail) {
       hailSound.play(10);
@@ -302,6 +315,24 @@ export default function useGameAudio() {
   }, [preventions]);
 
   useEffect(() => {
+    const startCalmAmbience = () => {
+      const disasterActive = Object.values(
+        useGameStore.getState().triggered || {}
+      ).some(Boolean);
+      if (!disasterActive) birdAmbience.play();
+      window.removeEventListener("pointerdown", startCalmAmbience);
+      window.removeEventListener("keydown", startCalmAmbience);
+    };
+
+    window.addEventListener("pointerdown", startCalmAmbience);
+    window.addEventListener("keydown", startCalmAmbience);
+    return () => {
+      window.removeEventListener("pointerdown", startCalmAmbience);
+      window.removeEventListener("keydown", startCalmAmbience);
+    };
+  }, []);
+
+  useEffect(() => {
     const fireLoopAudio = fireLoopSound.audio.current;
 
     fireLoopAudio?.load();
@@ -311,6 +342,7 @@ export default function useGameAudio() {
       fireSound.stop();
       fireLoopSound.stop();
       electricalFireSound.stop();
+      birdAmbience.stop();
       window.clearTimeout(protectedFireTimeout.current);
       window.clearTimeout(electricalSmokeAlarmTimeout.current);
       smokeAlarm.current?.stop();
