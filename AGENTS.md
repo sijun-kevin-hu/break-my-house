@@ -131,8 +131,7 @@ must be present and clickable before the tree disaster is triggered.
   outcome. The shared detector remains audible until every active fire that
   requires it has ended; one disaster must not silence another disaster's alarm.
   The electrical arc is also a seeded Web Audio effect; its protected
-  version ends at the AFCI trip while the full version plays the complete
-  authored burst.
+  version ends at the AFCI trip while the full version loops until reset.
 
 ## Adding a disaster
 

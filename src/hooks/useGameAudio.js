@@ -56,6 +56,7 @@ function createElectricalArc(reduced) {
   if (!AudioContextClass) return null;
 
   const context = new AudioContextClass();
+  const persistent = !reduced;
   const duration = reduced ? 0.62 : 2.8;
   const frameCount = Math.ceil(context.sampleRate * duration);
   const buffer = context.createBuffer(1, frameCount, context.sampleRate);
@@ -84,6 +85,7 @@ function createElectricalArc(reduced) {
   const hum = context.createOscillator();
   const humGain = context.createGain();
   noiseSource.buffer = buffer;
+  noiseSource.loop = persistent;
   noiseFilter.type = "bandpass";
   noiseFilter.frequency.value = 2800;
   noiseFilter.Q.value = 0.7;
@@ -91,13 +93,17 @@ function createElectricalArc(reduced) {
   hum.type = "sawtooth";
   hum.frequency.value = 60;
   humGain.gain.setValueAtTime(reduced ? 0.035 : 0.055, context.currentTime);
-  humGain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
+  if (reduced) {
+    humGain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
+  }
   noiseSource.connect(noiseFilter).connect(noiseGain).connect(context.destination);
   hum.connect(humGain).connect(context.destination);
   noiseSource.start();
   hum.start();
-  noiseSource.stop(context.currentTime + duration);
-  hum.stop(context.currentTime + duration);
+  if (reduced) {
+    noiseSource.stop(context.currentTime + duration);
+    hum.stop(context.currentTime + duration);
+  }
 
   return {
     stop() {
