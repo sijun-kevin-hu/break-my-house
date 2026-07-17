@@ -190,8 +190,21 @@ export default function useGameAudio() {
   const waterBurst = useRef(null);
   const electricalArc = useRef(null);
   const smokeAlarm = useRef(null);
+  const smokeAlarmDemand = useRef({ fire: false, electrical: false });
   const protectedFireTimeout = useRef(null);
   const electricalSmokeAlarmTimeout = useRef(null);
+
+  const setSmokeAlarmDemand = (source, active) => {
+    smokeAlarmDemand.current[source] = active;
+    const alarmRequired = Object.values(smokeAlarmDemand.current).some(Boolean);
+
+    if (alarmRequired && !smokeAlarm.current) {
+      smokeAlarm.current = createSmokeAlarm();
+    } else if (!alarmRequired && smokeAlarm.current) {
+      smokeAlarm.current.stop();
+      smokeAlarm.current = null;
+    }
+  };
 
   useEffect(() => {
     const previous = previousTriggered.current;
@@ -217,16 +230,14 @@ export default function useGameAudio() {
       fireLoopSound.play();
       if (preventions?.fire) {
         const fireOutMs = DISASTERS.fire.protectedSequence.fireOut * 1000;
-        smokeAlarm.current?.stop();
-        smokeAlarm.current = createSmokeAlarm();
+        setSmokeAlarmDemand("fire", true);
         window.clearTimeout(protectedFireTimeout.current);
         protectedFireTimeout.current = window.setTimeout(() => {
           const state = useGameStore.getState();
           if (!state.triggered.fire || !state.preventions.fire) return;
           fireSound.stop();
           fireLoopSound.stop();
-          smokeAlarm.current?.stop();
-          smokeAlarm.current = null;
+          setSmokeAlarmDemand("fire", false);
         }, fireOutMs);
       }
     }
@@ -236,8 +247,7 @@ export default function useGameAudio() {
       protectedFireTimeout.current = null;
       fireSound.stop();
       fireLoopSound.stop();
-      smokeAlarm.current?.stop();
-      smokeAlarm.current = null;
+      setSmokeAlarmDemand("fire", false);
     }
 
     if (triggered?.water && !previous.water) {
@@ -273,8 +283,7 @@ export default function useGameAudio() {
             (id) => state.preventions?.[id]
           );
           if (!state.triggered.electrical || state.preventions.electrical || !detectorStillActive) return;
-          smokeAlarm.current?.stop();
-          smokeAlarm.current = createSmokeAlarm();
+          setSmokeAlarmDemand("electrical", true);
         }, DISASTERS.electrical.smokeAlarmDelay * 1000);
       }
     }
@@ -285,8 +294,7 @@ export default function useGameAudio() {
       electricalArc.current?.stop();
       electricalArc.current = null;
       electricalFireSound.stop();
-      smokeAlarm.current?.stop();
-      smokeAlarm.current = null;
+      setSmokeAlarmDemand("electrical", false);
     }
 
     if (
@@ -345,6 +353,7 @@ export default function useGameAudio() {
       birdAmbience.stop();
       window.clearTimeout(protectedFireTimeout.current);
       window.clearTimeout(electricalSmokeAlarmTimeout.current);
+      smokeAlarmDemand.current = { fire: false, electrical: false };
       smokeAlarm.current?.stop();
       treeSound.stop();
       successSound.stop();

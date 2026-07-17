@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import { DISASTERS, PREVENTIONS } from '../data/disasters'
+import {
+  DISASTERS,
+  DISASTER_LIST,
+  PREVENTIONS,
+  WALLET,
+  getPreventionLockDisasterIds,
+} from '../data/disasters'
 
 const getDisasterOutcome = (preventions, disasterId) => {
   const disaster = DISASTERS[disasterId]
@@ -9,6 +15,13 @@ const getDisasterOutcome = (preventions, disasterId) => {
   if (!activePrevention) return 'full'
   return disaster.preventionOutcomes?.[activePrevention] ?? 'reduced'
 }
+
+const getOutcomeCost = (disaster, outcome) =>
+  outcome === 'prevented'
+    ? (disaster.repairEstimatePrevented ?? 0)
+    : outcome === 'reduced'
+      ? disaster.repairEstimateReduced
+      : disaster.repairEstimate
 
 /**
  * Single source of truth for game state.
@@ -27,6 +40,15 @@ const getDisasterOutcome = (preventions, disasterId) => {
  *  - acknowledgementRequired: blocks new disaster selections from the instant
  *                an event begins until its result panel's "Got it" is pressed
  *  - hasStarted:  whether the one-time first-load orientation panel is dismissed
+ *
+ * Savings-pot game — resetHouse starts a fresh run, including the wallet:
+ *  - funds:       remaining savings; disasters drain their uninsured repair
+ *                 estimate, protections charge while they are selected
+ *  - purchased:   { [preventionId]: true } currently paid protections;
+ *                 switching one off refunds its full cost
+ *  - outcomesSeen:{ [disasterId]: true } drives the survived-the-year win
+ *  - totalDamage / totalAvoided: running tallies for the end panels
+ *  - brokeDismissed / winDismissed: one-time end panels acknowledged
  */
 export const useGameStore = create((set, get) => ({
   hasStarted: false,
@@ -35,6 +57,13 @@ export const useGameStore = create((set, get) => ({
   preventions: {},
   panelDisaster: null,
   acknowledgementRequired: false,
+  funds: WALLET.startingFunds,
+  purchased: {},
+  outcomesSeen: {},
+  totalDamage: 0,
+  totalAvoided: 0,
+  brokeDismissed: false,
+  winDismissed: false,
 
   triggerDisaster: (id) => {
     if (get().triggered[id] || get().acknowledgementRequired) return
@@ -59,18 +88,47 @@ export const useGameStore = create((set, get) => ({
         : (DISASTERS[id].resultDelay ?? DISASTERS[id].effectDuration)
     setTimeout(() => {
       if (!get().triggered[id]) return // reset happened mid-impact
+      const disaster = DISASTERS[id]
+      const cost = getOutcomeCost(disaster, outcome)
+      const mitigated = outcome !== 'full'
+      // The repair bill lands on the same beat the player reads the outcome.
       set((s) => ({
         panelDisaster: id,
         damage: { ...s.damage, [id]: outcome },
+        funds: s.funds - cost,
+        outcomesSeen: { ...s.outcomesSeen, [id]: true },
+        totalDamage: s.totalDamage + cost,
+        totalAvoided:
+          s.totalAvoided + (mitigated ? disaster.repairEstimate - cost : 0),
       }))
     }, duration)
   },
 
   togglePrevention: (id) => {
     const prevention = PREVENTIONS.find((option) => option.id === id)
-    if (prevention && get().triggered[prevention.disasterId]) return
+    if (
+      !prevention ||
+      getPreventionLockDisasterIds(prevention).some(
+        (disasterId) => get().triggered[disasterId]
+      )
+    ) return
+    const { preventions, funds } = get()
+    const enabling = !preventions[id]
+    // Protection costs follow the current selection: charge on enable and
+    // refund on disable. Block activation if the player cannot cover it.
+    if (enabling) {
+      if (funds < prevention.cost) return
+      set((s) => ({
+        purchased: { ...s.purchased, [id]: true },
+        funds: s.funds - prevention.cost,
+        preventions: { ...s.preventions, [id]: true },
+      }))
+      return
+    }
     set((s) => ({
-      preventions: { ...s.preventions, [id]: !s.preventions[id] },
+      purchased: { ...s.purchased, [id]: false },
+      funds: s.funds + prevention.cost,
+      preventions: { ...s.preventions, [id]: false },
     }))
   },
 
@@ -80,21 +138,49 @@ export const useGameStore = create((set, get) => ({
 
   showIntroduction: () => set({ hasStarted: false }),
 
+  dismissBroke: () => set({ brokeDismissed: true }),
+
+  dismissWin: () => set({ winDismissed: true }),
+
   resetHouse: () =>
     set({
       triggered: {},
       damage: {},
+      preventions: {},
       panelDisaster: null,
       acknowledgementRequired: false,
+      funds: WALLET.startingFunds,
+      purchased: {},
+      outcomesSeen: {},
+      totalDamage: 0,
+      totalAvoided: 0,
+      brokeDismissed: false,
+      winDismissed: false,
     }),
 
-  // Derived: 100 base, minus per-disaster risk unless prevented
-  riskScore: () => {
-    const { preventions } = get()
-    return Object.values(DISASTERS).reduce(
-      (score, d) => score - (getDisasterOutcome(preventions, d.id) === 'full' ? d.riskWeight : 0),
-      100
-    )
+  // Fresh game: refill the pot and clear every purchase, outcome, and tally.
+  startOver: () =>
+    set({
+      triggered: {},
+      damage: {},
+      preventions: {},
+      panelDisaster: null,
+      acknowledgementRequired: false,
+      funds: WALLET.startingFunds,
+      purchased: {},
+      outcomesSeen: {},
+      totalDamage: 0,
+      totalAvoided: 0,
+      brokeDismissed: false,
+      winDismissed: false,
+    }),
+
+  // Derived: broke at $0 or below; survived once all five risks are tested
+  // while still solvent.
+  isBroke: () => get().funds <= 0,
+  survivedYear: () => {
+    const { outcomesSeen, funds } = get()
+    return funds > 0 && DISASTER_LIST.every((d) => outcomesSeen[d.id])
   },
 }))
 

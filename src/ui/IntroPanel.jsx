@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from '../store/useGameStore'
-import { COVERAGE_DEMO, INTRODUCTION, PREVENTIONS } from '../data/disasters'
+import { COVERAGE_DEMO, INTRODUCTION, PREVENTIONS, WALLET } from '../data/disasters'
 
 /** First-load orientation overlay. Gameplay state and dismissal live in the store. */
 export default function IntroPanel() {
@@ -33,6 +33,10 @@ export default function IntroPanel() {
               <span aria-hidden="true">✦</span>
               <p><strong>{content.lessonLabel}:</strong> {content.lesson}</p>
             </div>
+            <div className="intro-lesson intro-mission" aria-label={WALLET.missionLabel}>
+              <span aria-hidden="true">🏆</span>
+              <p><strong>{WALLET.missionLabel}:</strong> {WALLET.mission}</p>
+            </div>
             <div className="intro-controls">
               <p className="intro-controls-title">{content.controlsTitle}</p>
               <ul>
@@ -47,6 +51,9 @@ export default function IntroPanel() {
                 ))}
               </ul>
             </div>
+            <p className="intro-experience-note">
+              <span aria-hidden="true">⌘</span> Best experienced on desktop with sound on.
+            </p>
             <button className="intro-start" onClick={() => setStep('protection')} autoFocus>
               {content.nextAction} <span aria-hidden="true">→</span>
             </button>
@@ -65,10 +72,6 @@ export default function IntroPanel() {
                 </li>
               ))}
             </ul>
-            <div className="intro-lesson intro-lesson-protection" aria-label={content.calloutLabel}>
-              <span aria-hidden="true">✓</span>
-              <p><strong>{content.calloutLabel}:</strong> {content.callout}</p>
-            </div>
             <div className="intro-actions">
               <button className="intro-back" onClick={() => setStep('overview')}>
                 <span aria-hidden="true">←</span> {content.backAction}

@@ -218,6 +218,11 @@ function Wall({ id, normal, position, size, fireActive, fireReduced }) {
 function FireScorch({ active, reduced }) {
   const mats = useRef([])
   const age = useRef(0)
+  // Keep the complete scorch volume above the core's 0.10 finished-floor
+  // surface. The extra clearance prevents the floor depth buffer from hiding
+  // the char at shallow camera pitches.
+  const scorchCenterY = 0.17
+  const scorchHeight = 0.028
 
   const marks = [
     // Stove and counter: a large, dense ignition zone.
@@ -262,20 +267,23 @@ function FireScorch({ active, reduced }) {
           // stays above both the 0.10 slab and 0.11 rug at every camera angle.
           position={[
             mark.position[0],
-            0.15 + (index % 4) * 0.001,
+            scorchCenterY + (index % 4) * 0.001,
             mark.position[2],
           ]}
           rotation={[0, index * 0.38, 0]}
           scale={[mark.scale[0], 1, mark.scale[1]]}
           renderOrder={20 + index}
         >
-          <cylinderGeometry args={[mark.radius, mark.radius * 0.96, 0.024, 9]} />
+          <cylinderGeometry args={[mark.radius, mark.radius * 0.96, scorchHeight, 9]} />
           <meshBasicMaterial
             ref={(material) => (mats.current[index] = material)}
             color={index % 3 === 0 ? '#0b0705' : index % 2 ? '#24110a' : '#140906'}
             transparent
             opacity={0}
             depthWrite={false}
+            polygonOffset
+            polygonOffsetFactor={-2}
+            polygonOffsetUnits={-2}
           />
         </mesh>
       ))}

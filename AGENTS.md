@@ -71,9 +71,18 @@ must be present and clickable before the tree disaster is triggered.
   acknowledged with “Got it”; camera controls must remain available during this lock.
 - Snapshot prevention when a disaster starts. A player cannot turn on
   protection retroactively; related controls lock after its disaster fires.
-- Triggered effects and damage remain until `resetHouse()`. Reset clears damage
-  and stale trigger-hover state, but deliberately retains prevention choices for
-  comparison demos.
+  Cross-disaster controls declare every lock relationship in
+  `PREVENTIONS.lockDisasterIds`; smoke detectors lock after either the kitchen
+  fire or electrical fire starts and remain locked until reset.
+- Triggered effects and damage remain until `resetHouse()`. Reset clears damage,
+  prevention choices, stale trigger-hover state, and all savings-game progress
+  so the next run starts with the full savings pot.
+- A disaster's result subtracts its outcome cost from `funds`. A protection
+  charges its `cost` whenever it is enabled via `togglePrevention` and refunds
+  that full cost when disabled. Going to `funds <= 0` is broke; testing all five risks
+  while solvent is the survived-the-year win. Both end panels wait for the open
+  result panel to be acknowledged, so `panelDisaster` must be null before they
+  show.
 - A prevention must change both the spectacle and the information panel, not
   only the displayed price. `removeTree` is a fully prevented outcome.
 - Keep effects deterministic and authored. Do not add a physics engine.
@@ -116,7 +125,9 @@ must be present and clickable before the tree disaster is triggered.
   stops at the configured extinguisher fire-out beat. The same detector starts
   at the first flame beat and sounds throughout an unprotected electrical fire
   when the fire prevention is active; this alert does not change the electrical
-  outcome. The electrical arc is also a seeded Web Audio effect; its protected
+  outcome. The shared detector remains audible until every active fire that
+  requires it has ended; one disaster must not silence another disaster's alarm.
+  The electrical arc is also a seeded Web Audio effect; its protected
   version ends at the AFCI trip while the full version plays the complete
   authored burst.
 
@@ -128,5 +139,6 @@ must be present and clickable before the tree disaster is triggered.
 3. Add a discoverable scene-object trigger using `useClickable`.
 4. Add persistent damage to the house/scene and a visibly reduced or prevented
    variation.
-5. Verify reset, prevention locking, panel timing, risk score, and `npm run build`.
+5. Verify reset, prevention locking, panel timing, savings-pot charges (repair
+   drain, protection charge/refund), and `npm run build`.
 6. Update `PROJECT.md` with the feature status and any new known gap.

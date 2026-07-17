@@ -2,7 +2,8 @@ import { Canvas } from '@react-three/fiber'
 import Scene from './scene/Scene'
 import Toolbar from './ui/Toolbar'
 import InfoPanel from './ui/InfoPanel'
-import RiskScore from './ui/RiskScore'
+import SavingsMeter from './ui/SavingsMeter'
+import GameEndPanel from './ui/GameEndPanel'
 import IntroPanel from './ui/IntroPanel'
 import useGameAudio from './hooks/useGameAudio'
 import { useGameStore } from './store/useGameStore'
@@ -38,9 +39,10 @@ export default function App() {
         >
           <span aria-hidden="true">?</span> How to play
         </button>
-        <RiskScore />
+        <SavingsMeter />
         <Toolbar />
         <InfoPanel />
+        <GameEndPanel />
         <IntroPanel />
       </div>
     </div>

@@ -1,15 +1,23 @@
 import { useGameStore } from '../store/useGameStore'
-import { PREVENTIONS, PREVENTION_UI } from '../data/disasters'
+import {
+  PREVENTIONS,
+  PREVENTION_UI,
+  getPreventionLockDisasterIds,
+} from '../data/disasters'
 
 /**
  * Bottom toolbar. Disasters are triggered by clicking objects in the scene
  * (roof, stove, bathroom supply line, overloaded power strip, backyard tree) —
  * NOT from here. This panel only holds prevention toggles and reset.
  */
+const formatDollars = (amount) => `$${Math.abs(amount).toLocaleString('en-US')}`
+
 export default function Toolbar() {
   const preventions = useGameStore((s) => s.preventions)
   const triggered = useGameStore((s) => s.triggered)
   const acknowledgementRequired = useGameStore((s) => s.acknowledgementRequired)
+  const purchased = useGameStore((s) => s.purchased)
+  const funds = useGameStore((s) => s.funds)
   const togglePrevention = useGameStore((s) => s.togglePrevention)
   const resetHouse = useGameStore((s) => s.resetHouse)
   const triggerHints = [
@@ -50,23 +58,33 @@ export default function Toolbar() {
         <div className="prevention-grid">
           {PREVENTIONS.map((prevention) => {
             const active = !!preventions[prevention.id]
-            const locked = !!triggered[prevention.disasterId]
+            const locked = getPreventionLockDisasterIds(prevention).some(
+              (disasterId) => !!triggered[disasterId]
+            )
+            const owned = !!purchased[prevention.id]
+            // An inactive protection must be affordable before it can be selected.
+            const unaffordable = !owned && !active && funds < prevention.cost
             const state = locked
               ? PREVENTION_UI.lockedState
-              : active
-                ? PREVENTION_UI.activeState
-                : PREVENTION_UI.inactiveState
+              : unaffordable
+                ? PREVENTION_UI.cantAffordState
+                : active
+                  ? PREVENTION_UI.activeState
+                  : PREVENTION_UI.inactiveState
+            const costNote = owned
+              ? PREVENTION_UI.ownedNote
+              : `−${formatDollars(prevention.cost)}`
             return (
               <label
                 key={prevention.id}
-                className={`prevention-toggle${active ? ' prevention-toggle-active' : ''}${locked ? ' prevention-toggle-locked' : ''}`}
+                className={`prevention-toggle${active ? ' prevention-toggle-active' : ''}${locked || unaffordable ? ' prevention-toggle-locked' : ''}`}
               >
                 <input
                   className="prevention-input"
                   type="checkbox"
                   checked={active}
-                  disabled={locked}
-                  aria-label={`${prevention.label}. ${state}. Protects ${prevention.protects}.`}
+                  disabled={locked || unaffordable}
+                  aria-label={`${prevention.label}. ${state}. ${owned ? `Unselect to refund ${formatDollars(prevention.cost)}.` : `Costs ${formatDollars(prevention.cost)}.`} Protects ${prevention.protects}.`}
                   onChange={() => togglePrevention(prevention.id)}
                 />
                 <span className="prevention-check" aria-hidden="true">{active ? '✓' : ''}</span>
@@ -74,7 +92,9 @@ export default function Toolbar() {
                 <span className="prevention-copy">
                   <strong>{prevention.toolbarLabel}</strong>
                 </span>
-                <span className="prevention-state">{state}</span>
+                <span className="prevention-state">
+                  {state} · <b className={owned ? 'prevention-cost-owned' : 'prevention-cost'}>{costNote}</b>
+                </span>
               </label>
             )
           })}

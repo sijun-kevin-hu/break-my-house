@@ -42,9 +42,6 @@ export const INTRODUCTION = {
     title: 'Protect the house before you test it.',
     summary:
       'These are prevention choices — practical upgrades and maintenance that can reduce or eliminate a specific loss. Turn one on before you trigger its matching risk.',
-    calloutLabel: 'How the switches work',
-    callout:
-      'A green check means the protection is active. Once you test that risk, its switch locks so you can compare a fair before-and-after result. Reset keeps your choices for the next run.',
     startAction: 'Start the risk test',
     backAction: 'Back to overview',
   },
@@ -55,16 +52,60 @@ export const PREVENTION_UI = {
   activeState: 'Active',
   inactiveState: 'Off',
   lockedState: 'Locked',
+  cantAffordState: 'Can’t afford',
+  ownedNote: 'Paid',
+}
+
+/**
+ * Savings-pot game economy. The player starts with a fixed pot of savings;
+ * every resolved disaster drains its uninsured repair estimate, and every
+ * protection charges its cost while switched on and refunds that cost when
+ * switched off.
+ * Testing all five risks while staying above $0 wins the year; hitting $0 is
+ * a wipeout. The pot is deliberately smaller than the $84,000 total
+ * unprotected damage, so a reckless run cannot finish solvent — the player
+ * has to buy protection to survive. Each protection costs less than the
+ * damage it avoids, so buying is always rational but never free.
+ */
+export const WALLET = {
+  startingFunds: 50000,
+  hudLabel: 'Your savings',
+  hudNote: 'Test all 5 risks · don’t go broke',
+  missionLabel: 'The challenge',
+  mission:
+    'Test all five risks and finish with savings left. Protections cost money up front — but the losses they prevent cost far more.',
+  nudgeTitle: 'Protect your savings',
+  nudgeHeadline: '🛡️ Beat this risk and keep your money',
+  // Order matters: protections stay locked until the house is reset.
+  nudgeDetail: (prevention, cost) =>
+    `Press Reset house, buy “${prevention}” (${cost}), then trigger this risk again.`,
+  brokeKicker: 'Out of money',
+  brokeTitle: 'Wiped out!',
+  brokeSummary:
+    'Repair bills drained your savings — this is what one bad year looks like without enough protection.',
+  brokeDamageLabel: 'Total damage taken',
+  brokeFundsLabel: 'Savings left',
+  brokeButton: 'Start over',
+  brokeSecondary: 'Keep exploring',
+  winKicker: 'Challenge complete',
+  winTitle: 'You survived the year!',
+  winSummary:
+    'You tested all five risks and still have money in the bank — protection paid for itself.',
+  winFundsLabel: 'Savings left',
+  winAvoidedLabel: 'Damage avoided by protection',
+  winButton: 'Keep playing',
+  winSecondary: 'Start over',
+  endLesson: 'Insurance covers the catastrophe. Prevention keeps it small.',
 }
 
 export const DISASTERS = {
   hail: {
     id: 'hail',
     label: 'Hailstorm',
+    shortLabel: 'Hail',
     emoji: '🌨️',
     effectDuration: 4000,
     resultDelay: 2200,
-    riskWeight: 20,
     whatHappened: 'Golf-ball hail battered the roof and dented the gutters.',
     repairEstimate: 12000,
     repairEstimateReduced: 3500,
@@ -76,6 +117,7 @@ export const DISASTERS = {
   fire: {
     id: 'fire',
     label: 'Kitchen Fire',
+    shortLabel: 'Fire',
     emoji: '🔥',
     effectDuration: 4000,
     resultDelay: 1700,
@@ -86,7 +128,6 @@ export const DISASTERS = {
       fireOut: 2.65,
       extinguisherFadeEnd: 3.1,
     },
-    riskWeight: 30,
     whatHappened: 'An unattended stovetop fire spread to the cabinets before it was put out.',
     whatHappenedReduced:
       'The smoke alarm alerted the household while the fire was still on the stove, and an extinguisher put it out before it spread.',
@@ -100,6 +141,7 @@ export const DISASTERS = {
   water: {
     id: 'water',
     label: 'Bathroom Water Loss',
+    shortLabel: 'Water',
     emoji: '💧',
     effectDuration: 9000,
     // Let the initial jets and all four puddles establish, then surface the
@@ -108,7 +150,6 @@ export const DISASTERS = {
     reducedResultDelay: 1900,
     sprayPersistsUntilReset: true,
     sprayDurationReduced: 1.35,
-    riskWeight: 20,
     whatHappened:
       'A bathroom supply line split and sent water across the floor and into the nearby walls.',
     repairEstimate: 18000,
@@ -121,12 +162,12 @@ export const DISASTERS = {
   tree: {
     id: 'tree',
     label: 'Fallen Tree',
+    shortLabel: 'Tree',
     preventedLabel: 'Tree Risk Removed',
     emoji: '🌳',
     effectDuration: 4000,
     resultDelay: 1500,
     preventedDuration: 450,
-    riskWeight: 20,
     whatHappened: 'A storm dropped the backyard oak straight onto the roofline.',
     whatPrevented:
       'The hazardous oak was removed before the storm, leaving nothing close enough to strike the house.',
@@ -141,11 +182,11 @@ export const DISASTERS = {
   electrical: {
     id: 'electrical',
     label: 'Electrical Arc Fire',
+    shortLabel: 'Electrical',
     emoji: '⚡',
     effectDuration: 3500,
     resultDelay: 2200,
     reducedResultDelay: 850,
-    riskWeight: 10,
     whatHappened:
       'An overloaded bedroom power strip developed an arc fault, damaging wiring, drywall, and connected electronics.',
     repairEstimate: 20000,
@@ -161,9 +202,14 @@ export const DISASTERS = {
 
 export const DISASTER_LIST = Object.values(DISASTERS)
 
+export const getPreventionLockDisasterIds = (prevention) =>
+  prevention.lockDisasterIds ?? [prevention.disasterId]
+
 /**
  * Prevention controls are intentionally separate from disasters so each one
- * can declare which event it locks and mitigates.
+ * can declare which event it locks and mitigates. Each `cost` is charged while
+ * that protection is selected and refunded when it is unselected; every cost is
+ * deliberately lower than the damage its protection avoids.
  */
 export const PREVENTIONS = [
   {
@@ -174,15 +220,18 @@ export const PREVENTIONS = [
     toolbarLabel: 'Impact-resistant roof',
     protects: 'Hailstorm',
     benefit: 'Reduces roof impacts and repair costs.',
+    cost: 4000,
   },
   {
     id: 'fire',
     disasterId: 'fire',
+    lockDisasterIds: ['fire', 'electrical'],
     emoji: '🔥',
     label: 'Smoke detectors + extinguisher',
     toolbarLabel: 'Smoke alarm + extinguisher',
-    protects: 'Kitchen fire',
-    benefit: 'Helps stop a small stove fire before it spreads.',
+    protects: 'Kitchen fire; alerts on electrical fire',
+    benefit: 'Helps stop a small stove fire and warns of electrical fire spread.',
+    cost: 200,
   },
   {
     id: 'water',
@@ -192,6 +241,7 @@ export const PREVENTIONS = [
     toolbarLabel: 'Leak sensor + shutoff',
     protects: 'Bathroom water loss',
     benefit: 'Stops the flow before water reaches more of the home.',
+    cost: 800,
   },
   {
     id: 'removeTree',
@@ -201,6 +251,7 @@ export const PREVENTIONS = [
     toolbarLabel: 'Remove hazardous tree',
     protects: 'Fallen tree',
     benefit: 'Eliminates this tree strike risk entirely.',
+    cost: 1500,
   },
   {
     id: 'electrical',
@@ -210,5 +261,6 @@ export const PREVENTIONS = [
     toolbarLabel: 'AFCI + electrical check',
     protects: 'Electrical arc fire',
     benefit: 'Trips dangerous arcing before it can spread.',
+    cost: 1200,
   },
 ]
