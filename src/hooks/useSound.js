@@ -5,17 +5,18 @@ export default function useSound(
   {
     volume = 1,
     loop = false,
-    preload = "auto",
+    preload = "none",
   } = {}
 ) {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    const audio = new Audio(src);
+    const audio = new Audio();
 
     audio.volume = volume;
     audio.loop = loop;
     audio.preload = preload;
+    if (preload !== "none") audio.src = src;
 
     audioRef.current = audio;
 
@@ -30,12 +31,13 @@ export default function useSound(
 
     if (!audio) return;
 
+    if (!audio.getAttribute("src")) audio.src = src;
     audio.currentTime = startAt;
 
     audio.play().catch((err) => {
       console.warn("Unable to play sound:", err);
     });
-  }, []);
+  }, [src]);
 
   const stop = useCallback(() => {
     const audio = audioRef.current;
@@ -50,10 +52,18 @@ export default function useSound(
     audioRef.current?.pause();
   }, []);
 
+  const load = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.getAttribute("src")) audio.src = src;
+    audio.load();
+  }, [src]);
+
   return {
     play,
     stop,
     pause,
+    load,
     audio: audioRef,
   };
 }

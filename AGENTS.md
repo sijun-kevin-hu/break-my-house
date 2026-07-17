@@ -78,12 +78,13 @@ must be present and clickable before the tree disaster is triggered.
   prevention choices, stale trigger-hover state, and all savings-game progress,
   and invalidates pending result callbacks so a prior run cannot affect the new
   one. The next run starts with the full savings pot.
-- A disaster's result subtracts its outcome cost from `funds`. A protection
-  charges its `cost` whenever it is enabled via `togglePrevention` and refunds
-  that full cost when disabled. Going to `funds <= 0` is broke; testing all five risks
-  while solvent is the survived-the-year win. Both end panels wait for the open
-  result panel to be acknowledged, so `panelDisaster` must be null before they
-  show.
+- A disaster's result subtracts its full outcome cost from `funds`, even when
+  that takes the balance below zero; damage charges are never clamped. A
+  protection charges its `cost` whenever it is enabled via `togglePrevention`
+  and refunds that full cost when disabled. Going to `funds <= 0` is broke;
+  testing all five risks while solvent is the survived-the-year win. Both end
+  panels wait for the open result panel to be acknowledged, so `panelDisaster`
+  must be null before they show.
 - Damage avoided is the unprotected repair estimate minus the resolved repair
   estimate for each mitigated disaster. Protection purchase prices affect the
   savings balance but are not subtracted from damage avoided.
@@ -123,6 +124,9 @@ must be present and clickable before the tree disaster is triggered.
 - Audio is loaded from `public/audio/`. If audio filenames change, update
   `useGameAudio.js` in the same change. The current expected names are
   `hail.mp3`, `fire.mp3`, `fire-loop.mp3`, `tree.mp3`, and `success.mp3`.
+  Keep calm ambience available for the first user gesture, but do not preload
+  disaster clips during initial page load; warm them on that first gesture so
+  event timing remains authored.
   The water-loss burst is a seeded Web Audio effect configured in
   `src/data/disasters.js`; the unprotected sound loops until reset while the
   automatic-shutoff version uses its short authored duration. It has no asset file.
@@ -134,6 +138,13 @@ must be present and clickable before the tree disaster is triggered.
   requires it has ended; one disaster must not silence another disaster's alarm.
   The electrical arc is also a seeded Web Audio effect; its protected
   version ends at the AFCI trip while the full version loops until reset.
+
+## Loading performance
+
+- Keep the core house scene eager so onboarding retains its live 3D backdrop.
+- Trigger-only disaster effects may be code-split, but warm their chunks on the
+  first onboarding gesture. Keep the inactive water effect mounted because its
+  prepared geometry is required for immediate first-frame spray and puddles.
 
 ## Adding a disaster
 

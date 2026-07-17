@@ -181,6 +181,7 @@ export default function useGameAudio() {
   const birdAmbience = useSound("/audio/birds.mp3", {
     volume: 0.32,
     loop: true,
+    preload: "auto",
   });
 
   const treeSound = useSound("/audio/tree.mp3", {
@@ -340,6 +341,14 @@ export default function useGameAudio() {
         useGameStore.getState().triggered || {}
       ).some(Boolean);
       if (!disasterActive) birdAmbience.play();
+
+      // The first onboarding gesture gives large clips time to load without
+      // putting them on the initial page-load path or delaying a later event.
+      hailSound.load();
+      fireSound.load();
+      fireLoopSound.load();
+      electricalFireSound.load();
+      treeSound.load();
       window.removeEventListener("pointerdown", startCalmAmbience);
       window.removeEventListener("keydown", startCalmAmbience);
     };
@@ -353,10 +362,6 @@ export default function useGameAudio() {
   }, []);
 
   useEffect(() => {
-    const fireLoopAudio = fireLoopSound.audio.current;
-
-    fireLoopAudio?.load();
-
     return () => {
       hailSound.stop();
       fireSound.stop();

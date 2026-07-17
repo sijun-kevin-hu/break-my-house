@@ -9,6 +9,7 @@ export const COVERAGE_DEMO = {
   insurerPaymentLabel: 'If covered: insurer may pay',
   policyholderShareLabel: 'Your share',
   outOfPocketSuffix: 'out of pocket',
+  repairEstimatePrefix: 'Estimated',
   potentialPaymentPrefix: 'Up to',
   deductibleLabel: '$1,000 demo deductible',
   noClaimLabel: '$0 — no claim needed',
@@ -20,7 +21,7 @@ export const COVERAGE_DEMO = {
   introSummary:
     'See what five common home disasters could cost if you had to pay for repairs yourself. After each one, compare that bill with an illustrative homeowners insurance outcome.',
   disclaimer:
-    'Illustrative only. Assumes a covered loss, a $1,000 demo deductible, and sufficient policy limits. Your policy and deductible may differ.',
+    'Illustrative only. Repair amounts are authored demo scenarios, not quotes. Assumes a covered loss, replacement-cost settlement, a $1,000 demo deductible, and sufficient policy limits. Roof coverage and wind/hail deductibles vary by policy.',
 }
 
 /** Copy and labels for the first-load, two-step Break My House briefing. */
@@ -113,13 +114,17 @@ export const DISASTERS = {
     emoji: '🌨️',
     effectDuration: 4000,
     resultDelay: 2200,
-    whatHappened: 'Golf-ball hail battered the roof and dented the gutters.',
+    whatHappened: 'Golf-ball-sized hail damaged the roof.',
+    whatHappenedReduced:
+      'Impact-resistant roofing limited the golf-ball-sized hail damage to a smaller area of the roof.',
+    // Authored national demo scenario. Actual roof work varies with roof size,
+    // material, labor market, damage scope, policy valuation, and deductible.
     repairEstimate: 12000,
     repairEstimateReduced: 3500,
     prevention: 'Impact-resistant roofing',
     preventionIds: ['hail'],
     preventionTip:
-      'Class 4 impact-resistant shingles can cut hail damage dramatically — and often earn a premium discount.',
+      'Choose impact-resistant shingles with strong IBHS hail ratings. Product performance varies, and some insurers offer premium discounts.',
   },
   fire: {
     id: 'fire',
@@ -138,7 +143,8 @@ export const DISASTERS = {
       fireOut: 2.65,
       extinguisherFadeEnd: 3.1,
     },
-    whatHappened: 'An unattended stovetop fire spread to the cabinets before it was put out.',
+    whatHappened:
+      'An unattended stovetop fire spread to the furniture and charred the walls.',
     whatHappenedReduced:
       'The smoke alarm alerted the household while the fire was still on the stove, and an extinguisher put it out before it spread.',
     repairEstimate: 25000,

@@ -51,7 +51,7 @@ export default function InfoPanel() {
           <strong className="cost-full">
             {repairEstimate === 0
               ? COVERAGE_DEMO.noClaimLabel
-              : `${COVERAGE_DEMO.potentialPaymentPrefix} ${formatDollars(repairEstimate)} ${COVERAGE_DEMO.outOfPocketSuffix}`}
+              : `${COVERAGE_DEMO.repairEstimatePrefix} ${formatDollars(repairEstimate)} ${COVERAGE_DEMO.outOfPocketSuffix}`}
           </strong>
         </div>
         <div className="cost-row">

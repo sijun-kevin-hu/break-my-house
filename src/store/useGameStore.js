@@ -18,6 +18,10 @@ const getDisasterOutcome = (preventions, disasterId) => {
   return disaster.preventionOutcomes?.[activePrevention] ?? 'reduced'
 }
 
+// Damage records the entire repair shortfall. Do not floor the wallet at zero:
+// a bill larger than the remaining savings must leave a negative balance.
+const deductRepairCost = (funds, cost) => funds - cost
+
 /**
  * Single source of truth for game state.
  *
@@ -99,7 +103,7 @@ export const useGameStore = create((set, get) => ({
       set((s) => ({
         panelDisaster: id,
         damage: { ...s.damage, [id]: outcome },
-        funds: s.funds - cost,
+        funds: deductRepairCost(s.funds, cost),
         outcomesSeen: { ...s.outcomesSeen, [id]: true },
         totalDamage: s.totalDamage + cost,
         totalAvoided: s.totalAvoided + avoidedDamage,

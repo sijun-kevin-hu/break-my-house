@@ -1,8 +1,21 @@
+import { lazy, Suspense, useEffect } from 'react'
 import { useGameStore } from '../store/useGameStore'
-import Hail from './Hail'
-import Fire from './Fire'
 import WaterLeak from './WaterLeak'
-import ElectricalFault from './ElectricalFault'
+
+const EFFECT_LOADERS = {
+  hail: () => import('./Hail'),
+  fire: () => import('./Fire'),
+  electrical: () => import('./ElectricalFault'),
+}
+
+const EFFECTS = {
+  hail: lazy(EFFECT_LOADERS.hail),
+  fire: lazy(EFFECT_LOADERS.fire),
+  electrical: lazy(EFFECT_LOADERS.electrical),
+}
+
+const preloadDisasterEffects = () =>
+  Promise.allSettled(Object.values(EFFECT_LOADERS).map((loadEffect) => loadEffect()))
 
 /**
  * Mounts a visual effect for every triggered disaster. Effects stay mounted —
@@ -15,15 +28,24 @@ import ElectricalFault from './ElectricalFault'
  *
  * Adding a disaster: add its component here + content in src/data/disasters.js.
  */
-const EFFECTS = {
-  hail: Hail,
-  fire: Fire,
-  water: WaterLeak,
-  electrical: ElectricalFault,
-}
-
 export default function DisasterEffects() {
   const triggered = useGameStore((s) => s.triggered)
+
+  useEffect(() => {
+    const warmEffects = () => {
+      preloadDisasterEffects()
+      window.removeEventListener('pointerdown', warmEffects)
+      window.removeEventListener('keydown', warmEffects)
+    }
+
+    window.addEventListener('pointerdown', warmEffects)
+    window.addEventListener('keydown', warmEffects)
+    return () => {
+      window.removeEventListener('pointerdown', warmEffects)
+      window.removeEventListener('keydown', warmEffects)
+    }
+  }, [])
+
   return (
     <>
       {/* Keep the mesh-heavy water effect warm so clicking the valve only
@@ -32,7 +54,11 @@ export default function DisasterEffects() {
       {Object.keys(triggered).map((id) => {
         if (id === 'water') return null
         const Effect = EFFECTS[id]
-        return Effect ? <Effect key={id} /> : null
+        return Effect ? (
+          <Suspense key={id} fallback={null}>
+            <Effect />
+          </Suspense>
+        ) : null
       })}
     </>
   )
