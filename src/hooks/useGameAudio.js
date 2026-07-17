@@ -188,12 +188,7 @@ export default function useGameAudio() {
     volume: 0.8,
   });
 
-  const successSound = useSound("/audio/success.mp3", {
-    volume: 0.7,
-  });
-
   const previousTriggered = useRef({});
-  const previousPreventions = useRef({});
   const ambienceInterrupted = useRef(false);
   const waterBurst = useRef(null);
   const electricalArc = useRef(null);
@@ -322,20 +317,6 @@ export default function useGameAudio() {
   }, [triggered]);
 
   useEffect(() => {
-    const previous = previousPreventions.current;
-
-    const preventionWasAdded = Object.keys(preventions || {}).some(
-      (id) => preventions[id] && !previous[id]
-    );
-
-    if (preventionWasAdded) {
-      successSound.play();
-    }
-
-    previousPreventions.current = { ...preventions };
-  }, [preventions]);
-
-  useEffect(() => {
     const startCalmAmbience = () => {
       const disasterActive = Object.values(
         useGameStore.getState().triggered || {}
@@ -373,7 +354,6 @@ export default function useGameAudio() {
       smokeAlarmDemand.current = { fire: false, electrical: false };
       smokeAlarm.current?.stop();
       treeSound.stop();
-      successSound.stop();
       waterBurst.current?.stop();
       electricalArc.current?.stop();
     };

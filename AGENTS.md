@@ -123,7 +123,8 @@ must be present and clickable before the tree disaster is triggered.
   attribution file and preload new GLBs in `InteriorModel.jsx`.
 - Audio is loaded from `public/audio/`. If audio filenames change, update
   `useGameAudio.js` in the same change. The current expected names are
-  `hail.mp3`, `fire.mp3`, `fire-loop.mp3`, `tree.mp3`, and `success.mp3`.
+  `hail.mp3`, `fire.mp3`, `fire-loop.mp3`, and `tree.mp3`. The demo does not
+  use a victory or prevention-selection sound.
   Keep calm ambience available for the first user gesture, but do not preload
   disaster clips during initial page load; warm them on that first gesture so
   event timing remains authored.
