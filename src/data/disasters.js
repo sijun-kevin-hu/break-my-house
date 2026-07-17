@@ -18,33 +18,34 @@ export const COVERAGE_DEMO = {
   avoidedDamageDetail: 'Compared with the unprotected scenario.',
   acknowledgementTip: 'Press “Got it” to unlock the house and trigger another disaster.',
   introSummary:
-    'Explore a roomy three-bedroom, one-bath home, trigger a disaster, and compare the full uninsured cost with an illustrative covered outcome using a $1,000 demo deductible.',
+    'See what five common home disasters could cost if you had to pay for repairs yourself. After each one, compare that bill with an illustrative homeowners insurance outcome.',
   disclaimer:
     'Illustrative only. Assumes a covered loss, a $1,000 demo deductible, and sufficient policy limits. Your policy and deductible may differ.',
 }
 
-/** Copy and labels for the first-load, two-step risk-lab briefing. */
+/** Copy and labels for the first-load, two-step Break My House briefing. */
 export const INTRODUCTION = {
   overview: {
-    kicker: 'Insurance risk lab · 1 of 2',
-    title: 'How much can one home risk cost?',
-    lessonLabel: 'The goal',
-    lesson: 'See how a small home upgrade can limit damage, disruption, and avoidable costs before a claim begins.',
-    controlsTitle: 'Explore the house',
+    kicker: 'How to play · 1 of 2',
+    title: 'Break My House',
+    tagline: 'Could your savings survive a bad year at home?',
+    lessonLabel: 'What you’ll learn',
+    lesson: 'Why homeowners insurance matters when a repair bill is too big for savings alone — and how prevention can make the damage smaller.',
+    controlsTitle: 'Move around the house',
     controls: [
-      { keys: 'Click', label: 'the roof, stove, pipe, power strip, or tree', detail: 'Trigger a risk event' },
-      { keys: 'Drag / WASD', label: 'around the house', detail: 'Orbit the camera' },
-      { keys: 'Scroll', label: 'or use Q / E', detail: 'Zoom the view' },
+      { keys: 'Click', label: 'a highlighted object', detail: 'Trigger one of five home disasters' },
+      { keys: 'Drag / WASD', label: 'to look around', detail: 'Orbit the camera' },
+      { keys: 'Scroll / Q / E', label: 'to get closer', detail: 'Zoom the view' },
     ],
-    nextAction: 'Next: choose protections',
+    nextAction: 'Choose prevention',
   },
   protection: {
-    kicker: 'Insurance risk lab · 2 of 2',
-    title: 'Protect the house before you test it.',
+    kicker: 'How to play · 2 of 2',
+    title: 'Prevent damage before it starts.',
     summary:
-      'These are prevention choices — practical upgrades and maintenance that can reduce or eliminate a specific loss. Turn one on before you trigger its matching risk.',
-    startAction: 'Start the risk test',
-    backAction: 'Back to overview',
+      'Choose any upgrades you want to buy. Each costs some savings now, but can reduce or eliminate a much larger repair bill later. You cannot add one after its disaster starts.',
+    startAction: 'Start breaking things',
+    backAction: 'Back',
   },
 }
 
@@ -72,9 +73,19 @@ export const WALLET = {
   startingFunds: 50000,
   hudLabel: 'Your savings',
   hudNote: 'Test all 5 risks · don’t go broke',
-  missionLabel: 'The challenge',
+  missionLabel: 'Keep your savings above $0',
   mission:
-    'Test all five risks and finish with savings left. Protections cost money up front — but the losses they prevent cost far more.',
+    'Test all five risks and finish with money left. Buying prevention costs a little now, but can protect you from much larger losses.',
+  introBalanceLabel: 'Your starting savings',
+  introBalanceNote:
+    'This is your rainy-day fund. In this game, prevention purchases and repair bills without insurance both come out of it.',
+  introInsuranceNote:
+    'Each result also shows how homeowners insurance could help with that repair bill.',
+  introSteps: [
+    { title: 'Choose prevention', detail: 'Spend a little now to reduce a bigger loss.' },
+    { title: 'Test all 5 risks', detail: 'Click objects around the house to cause disasters.' },
+    { title: 'Stay above $0', detail: 'Finish with savings left to survive the year.' },
+  ],
   brokeKicker: 'Out of money',
   brokeTitle: 'Wiped out!',
   brokeSummary:

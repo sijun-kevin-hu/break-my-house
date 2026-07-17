@@ -36,8 +36,8 @@ technical convention or invariant changes.
 | Savings-pot game | Partial | Replaces the former Home Risk Score. The player starts with a $50,000 savings pot shown in a top-right meter (green → amber → red as it drains). Each resolved disaster subtracts its uninsured repair estimate. Selecting a protection subtracts its cost (roof $4,000, alarm $200, leak $800, tree $1,500, AFCI $1,200); unselecting it refunds that full cost. A protection the pot can't cover shows “Can't afford” and is disabled. Reset house clears the wallet, protection selections, outcomes, and tallies for a fresh $50,000 run. The $50k pot is smaller than the $84k total unprotected damage, so a reckless run cannot finish solvent. Testing all five risks while still solvent opens a one-time “Your savings survived!” win panel (savings left + damage avoided); damage avoided is the $84k unprotected baseline minus resolved repair damage and excludes protection purchase prices. Dropping to $0 or below opens a one-time “Wiped out!” panel (total damage taken + negative balance). Both wait for the open result panel to be acknowledged. Production build and direct store math checks pass, including $72,500 avoided with all protections; manual browser verification remains. |
 | Reset for repeat demos | Done | Clears triggered disasters, damage, prevention selections, savings purchases/progress, and stale disaster-hover indicators, then restores the full $50,000 savings pot. |
 | Sound effects | Partial | Hail, fire, fire-loop, and tree assets are connected; the tree-fall cue is suppressed when the hazardous tree has already been removed, and clicking that stump as the first tested risk leaves the calm bird ambience playing. Water loss and the electrical arc use seeded procedural effects with prevention-specific durations. Smoke-alarm demand is tracked independently for the kitchen and electrical fires, so one event ending cannot silence another fire that still requires the shared detector. The referenced success cue is still absent. |
-| First-load introduction | Partial | The opening risk-lab briefing now has two deliberate steps: an overview of the learning goal and house navigation, followed by a prevention setup that names every upgrade, the risk it protects, and its practical benefit. The overview includes a prominent note that the demo is best experienced on desktop with sound on. A persistent “How to play” control reopens the briefing without changing the simulation. Production build passes; manual visual smoke testing remains. |
-| Title/intro polish | Partial | The two-step first-load experience, desktop-and-sound note, and protection-card language are in place; a final at-screen-size visual pass remains. |
+| First-load introduction | Partial | The two-step “Break My House” onboarding is written for homeowners rather than insurance professionals. Its overview leads with the $50,000 rainy-day savings model, explains that uninsured repair bills and prevention purchases drain that balance, and previews the illustrative insurance comparison shown after each loss. A three-step sequence makes the goal explicit: choose prevention, test all five risks, and stay above $0. The second step names every upgrade, the risk it protects, and its practical benefit. A persistent “How to play” control reopens the briefing without changing the simulation. Production build passes; manual visual smoke testing remains. |
+| Title/intro polish | Partial | The start panel now uses the product name “Break My House,” plain-language homeowner framing, a prominent starting-savings ledger, and focused action copy. A final at-screen-size visual pass remains. |
 
 **Explicitly out of scope:** real-world physics, LLM NPCs, walking character,
 additional room-specific disasters beyond the water and electrical losses, and mobile layout.
@@ -134,7 +134,7 @@ the run's purchases and refill the pot.
    single-bath layout, partition/perimeter joins, pop-free exterior and interior
    wall/roof fades at all angles and pitches, lower-gable seam/alignment, camera framing, and
    bathroom-pipe access.
-4. Do a final visual pass on the title, two-step briefing, and prevention cards at the intended demo screen size.
+4. Do a final visual pass on the “Break My House” title, savings-led two-step briefing, and prevention cards at the intended demo screen size.
 5. Run the manual demo flow below on the target browser before presenting.
 
 ## Architecture
@@ -171,8 +171,8 @@ src/
 ## Verification checklist
 
 - [x] `npm run build` passes (last verified against the current working tree).
-- [ ] On a fresh load, review both risk-lab briefing panels: confirm the first
-  explains the goal and house navigation, includes the desktop-with-sound recommendation, and the second clearly names every prevention choice, its protected risk and benefit. Start the test, confirm each simulator protection card has a large visible checkbox, named protected risk, and correct on/off state; trigger one matching risk to verify its card locks. Reopen the briefing with “How to play” without changing the simulation.
+- [ ] On a fresh load, review both “Break My House” onboarding panels: confirm the first
+  defines the $50,000 as personal rainy-day savings, explains that prevention purchases and uninsured repair bills reduce it, previews the insurance comparison, includes the desktop-with-sound recommendation, and makes the choose prevention → test all five risks → stay above $0 sequence clear. Confirm the second clearly names every prevention choice, its protected risk and benefit. Start the game, confirm each simulator protection card has a large visible checkbox, named protected risk, and correct on/off state; trigger one matching risk to verify its card locks. Reopen the onboarding with “How to play” without changing the simulation.
 - [ ] With sound enabled, click roof, stove, bathroom pipe, power strip, and tree
   and confirm one correct sound each. Confirm the protected electrical crackle
   ends with the breaker trip while the full burst continues through its authored

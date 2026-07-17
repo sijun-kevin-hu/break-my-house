@@ -28,14 +28,33 @@ export default function IntroPanel() {
         </div>
         {isOverview ? (
           <>
+            <p className="intro-tagline">{content.tagline}</p>
             <p className="intro-summary">{COVERAGE_DEMO.introSummary}</p>
+            <section className="intro-wallet" aria-label={WALLET.introBalanceLabel}>
+              <div className="intro-wallet-balance">
+                <span>{WALLET.introBalanceLabel}</span>
+                <strong>{WALLET.startingFunds.toLocaleString('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  maximumFractionDigits: 0,
+                })}</strong>
+                <small>{WALLET.introBalanceNote}</small>
+              </div>
+              <ol className="intro-wallet-steps">
+                {WALLET.introSteps.map((item) => (
+                  <li key={item.title}>
+                    <span aria-hidden="true" />
+                    <p><strong>{item.title}</strong><small>{item.detail}</small></p>
+                  </li>
+                ))}
+              </ol>
+              <p className="intro-insurance-note">
+                <span aria-hidden="true">🛡</span> {WALLET.introInsuranceNote}
+              </p>
+            </section>
             <div className="intro-lesson" aria-label={content.lessonLabel}>
               <span aria-hidden="true">✦</span>
               <p><strong>{content.lessonLabel}:</strong> {content.lesson}</p>
-            </div>
-            <div className="intro-lesson intro-mission" aria-label={WALLET.missionLabel}>
-              <span aria-hidden="true">🏆</span>
-              <p><strong>{WALLET.missionLabel}:</strong> {WALLET.mission}</p>
             </div>
             <div className="intro-controls">
               <p className="intro-controls-title">{content.controlsTitle}</p>
