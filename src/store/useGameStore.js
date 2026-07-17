@@ -4,6 +4,8 @@ import {
   DISASTER_LIST,
   PREVENTIONS,
   WALLET,
+  getDamageAvoided,
+  getOutcomeRepairEstimate,
   getPreventionLockDisasterIds,
 } from '../data/disasters'
 
@@ -15,13 +17,6 @@ const getDisasterOutcome = (preventions, disasterId) => {
   if (!activePrevention) return 'full'
   return disaster.preventionOutcomes?.[activePrevention] ?? 'reduced'
 }
-
-const getOutcomeCost = (disaster, outcome) =>
-  outcome === 'prevented'
-    ? (disaster.repairEstimatePrevented ?? 0)
-    : outcome === 'reduced'
-      ? disaster.repairEstimateReduced
-      : disaster.repairEstimate
 
 /**
  * Single source of truth for game state.
@@ -89,8 +84,8 @@ export const useGameStore = create((set, get) => ({
     setTimeout(() => {
       if (!get().triggered[id]) return // reset happened mid-impact
       const disaster = DISASTERS[id]
-      const cost = getOutcomeCost(disaster, outcome)
-      const mitigated = outcome !== 'full'
+      const cost = getOutcomeRepairEstimate(disaster, outcome)
+      const avoidedDamage = getDamageAvoided(disaster, outcome)
       // The repair bill lands on the same beat the player reads the outcome.
       set((s) => ({
         panelDisaster: id,
@@ -98,8 +93,7 @@ export const useGameStore = create((set, get) => ({
         funds: s.funds - cost,
         outcomesSeen: { ...s.outcomesSeen, [id]: true },
         totalDamage: s.totalDamage + cost,
-        totalAvoided:
-          s.totalAvoided + (mitigated ? disaster.repairEstimate - cost : 0),
+        totalAvoided: s.totalAvoided + avoidedDamage,
       }))
     }, duration)
   },

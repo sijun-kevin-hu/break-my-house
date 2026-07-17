@@ -1,5 +1,10 @@
 import { useGameStore } from '../store/useGameStore'
-import { COVERAGE_DEMO, DISASTERS } from '../data/disasters'
+import {
+  COVERAGE_DEMO,
+  DISASTERS,
+  getDamageAvoided,
+  getOutcomeRepairEstimate,
+} from '../data/disasters'
 
 const formatDollars = (amount) => `$${amount.toLocaleString('en-US')}`
 
@@ -14,14 +19,11 @@ export default function InfoPanel() {
   const reduced = damage[d.id] === 'reduced'
   const prevented = damage[d.id] === 'prevented'
   const mitigated = reduced || prevented
-  const repairEstimate = prevented
-    ? (d.repairEstimatePrevented ?? 0)
-    : reduced
-      ? d.repairEstimateReduced
-      : d.repairEstimate
+  const outcome = damage[d.id] ?? 'full'
+  const repairEstimate = getOutcomeRepairEstimate(d, outcome)
   const insurerPayment = Math.max(0, repairEstimate - COVERAGE_DEMO.deductible)
   const policyholderShare = repairEstimate - insurerPayment
-  const avoidedDamage = d.repairEstimate - repairEstimate
+  const avoidedDamage = getDamageAvoided(d, outcome)
   return (
     <aside className="info-panel">
       <h2>

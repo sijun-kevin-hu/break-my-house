@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import useSound from "./useSound";
 import { useGameStore } from "../store/useGameStore";
 import { DISASTERS } from "../data/disasters";
@@ -187,6 +187,7 @@ export default function useGameAudio() {
 
   const previousTriggered = useRef({});
   const previousPreventions = useRef({});
+  const ambienceInterrupted = useRef(false);
   const waterBurst = useRef(null);
   const electricalArc = useRef(null);
   const smokeAlarm = useRef(null);
@@ -206,10 +207,14 @@ export default function useGameAudio() {
     }
   };
 
-  useEffect(() => {
+  // Start disaster audio before React paints the newly mounted effect so the
+  // first visible impact frame and its sound land on the same authored beat.
+  useLayoutEffect(() => {
     const previous = previousTriggered.current;
-    const disasterActive = Object.values(triggered || {}).some(Boolean);
-    const disasterWasActive = Object.values(previous).some(Boolean);
+    const disasterActive = Object.entries(triggered || {}).some(
+      ([id, active]) => active && (id !== "tree" || !preventions?.removeTree)
+    );
+    const disasterWasActive = ambienceInterrupted.current;
 
     if (disasterActive) {
       birdAmbience.stop();
@@ -226,8 +231,8 @@ export default function useGameAudio() {
     }
 
     if (triggered?.fire && !previous.fire) {
-      fireSound.play();
-      fireLoopSound.play();
+      fireSound.play(DISASTERS.fire.audioStartAt);
+      fireLoopSound.play(DISASTERS.fire.loopAudioStartAt);
       if (preventions?.fire) {
         const fireOutMs = DISASTERS.fire.protectedSequence.fireOut * 1000;
         setSmokeAlarmDemand("fire", true);
@@ -305,6 +310,7 @@ export default function useGameAudio() {
       treeSound.play();
     }
 
+    ambienceInterrupted.current = disasterActive;
     previousTriggered.current = { ...triggered };
   }, [triggered]);
 

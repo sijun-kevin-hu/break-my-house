@@ -84,7 +84,7 @@ export const WALLET = {
   brokeButton: 'Start over',
   brokeSecondary: 'Keep exploring',
   winKicker: 'Challenge complete',
-  winTitle: 'You survived the year!',
+  winTitle: 'Your savings survived!',
   winSummary:
     'You tested all five risks and still have money in the bank — protection paid for itself.',
   winFundsLabel: 'Savings left',
@@ -118,6 +118,9 @@ export const DISASTERS = {
     effectDuration: 4000,
     resultDelay: 1700,
     reducedResultDelay: 3100,
+    // Seconds: skip the measured near-silent lead-in without re-encoding.
+    audioStartAt: 0.95,
+    loopAudioStartAt: 1.17,
     protectedSequence: {
       extinguisherArrival: 0.55,
       foamStart: 0.95,
@@ -197,6 +200,22 @@ export const DISASTERS = {
 }
 
 export const DISASTER_LIST = Object.values(DISASTERS)
+
+/** Resolve the authored repair estimate for a disaster outcome. */
+export const getOutcomeRepairEstimate = (disaster, outcome) =>
+  outcome === 'prevented'
+    ? (disaster.repairEstimatePrevented ?? 0)
+    : outcome === 'reduced'
+      ? disaster.repairEstimateReduced
+      : disaster.repairEstimate
+
+/**
+ * Damage avoided compares the resolved repair estimate with that disaster's
+ * unprotected baseline. Protection purchase prices affect the savings balance,
+ * but are not damage and therefore do not reduce this figure.
+ */
+export const getDamageAvoided = (disaster, outcome) =>
+  Math.max(0, disaster.repairEstimate - getOutcomeRepairEstimate(disaster, outcome))
 
 export const getPreventionLockDisasterIds = (prevention) =>
   prevention.lockDisasterIds ?? [prevention.disasterId]

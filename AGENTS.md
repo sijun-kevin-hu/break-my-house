@@ -83,6 +83,9 @@ must be present and clickable before the tree disaster is triggered.
   while solvent is the survived-the-year win. Both end panels wait for the open
   result panel to be acknowledged, so `panelDisaster` must be null before they
   show.
+- Damage avoided is the unprotected repair estimate minus the resolved repair
+  estimate for each mitigated disaster. Protection purchase prices affect the
+  savings balance but are not subtracted from damage avoided.
 - A prevention must change both the spectacle and the information panel, not
   only the displayed price. `removeTree` is a fully prevented outcome.
 - Keep effects deterministic and authored. Do not add a physics engine.
