@@ -59,12 +59,14 @@ export const useGameStore = create((set, get) => ({
   totalAvoided: 0,
   brokeDismissed: false,
   winDismissed: false,
+  runGeneration: 0,
 
   triggerDisaster: (id) => {
     if (get().triggered[id] || get().acknowledgementRequired) return
     // Snapshot the outcome before the event starts. Related controls lock as
     // soon as the event is triggered, preventing retroactive protection.
     const outcome = getDisasterOutcome(get().preventions, id)
+    const runGeneration = get().runGeneration
     set((s) => ({
       triggered: { ...s.triggered, [id]: true },
       panelDisaster: null,
@@ -82,7 +84,14 @@ export const useGameStore = create((set, get) => ({
             DISASTERS[id].effectDuration)
         : (DISASTERS[id].resultDelay ?? DISASTERS[id].effectDuration)
     setTimeout(() => {
-      if (!get().triggered[id]) return // reset happened mid-impact
+      const current = get()
+      // Reset/start-over begins a new generation. Ignore any result callback
+      // left behind by the previous run, even if the same risk was retriggered.
+      if (
+        current.runGeneration !== runGeneration ||
+        !current.triggered[id] ||
+        current.damage[id]
+      ) return
       const disaster = DISASTERS[id]
       const cost = getOutcomeRepairEstimate(disaster, outcome)
       const avoidedDamage = getDamageAvoided(disaster, outcome)
@@ -137,7 +146,7 @@ export const useGameStore = create((set, get) => ({
   dismissWin: () => set({ winDismissed: true }),
 
   resetHouse: () =>
-    set({
+    set((s) => ({
       triggered: {},
       damage: {},
       preventions: {},
@@ -150,11 +159,12 @@ export const useGameStore = create((set, get) => ({
       totalAvoided: 0,
       brokeDismissed: false,
       winDismissed: false,
-    }),
+      runGeneration: s.runGeneration + 1,
+    })),
 
   // Fresh game: refill the pot and clear every purchase, outcome, and tally.
   startOver: () =>
-    set({
+    set((s) => ({
       triggered: {},
       damage: {},
       preventions: {},
@@ -167,7 +177,8 @@ export const useGameStore = create((set, get) => ({
       totalAvoided: 0,
       brokeDismissed: false,
       winDismissed: false,
-    }),
+      runGeneration: s.runGeneration + 1,
+    })),
 
   // Derived: broke at $0 or below; survived once all five risks are tested
   // while still solvent.
@@ -177,5 +188,3 @@ export const useGameStore = create((set, get) => ({
     return funds > 0 && DISASTER_LIST.every((d) => outcomesSeen[d.id])
   },
 }))
-
-if (typeof window !== 'undefined') window.__store = useGameStore // debug

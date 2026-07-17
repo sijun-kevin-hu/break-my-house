@@ -1,23 +1,12 @@
 import { OrbitControls, Sky } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import House from './House'
 import Ground from './Ground'
 import BackyardTree from './BackyardTree'
 import DisasterEffects from '../disasters/DisasterEffects'
 import { useGameStore } from '../store/useGameStore'
-
-function CameraProbe() {
-  useFrame((state) => {
-    if (typeof window !== 'undefined') {
-      window.__cam = state.camera
-      window.__glDom = state.gl.domElement
-      window.__scene = state.scene
-    }
-  })
-  return null
-}
 
 const KEYBOARD_ORBIT_KEYS = new Set([
   'KeyW',
@@ -50,6 +39,21 @@ const KEYBOARD_ZOOM_STEPS_PER_SECOND = 12
 const isTextInput = (element) =>
   element instanceof HTMLElement &&
   !!element.closest('input, textarea, select, [contenteditable="true"]')
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updatePreference = (event) => setPrefersReducedMotion(event.matches)
+    mediaQuery.addEventListener('change', updatePreference)
+    return () => mediaQuery.removeEventListener('change', updatePreference)
+  }, [])
+
+  return prefersReducedMotion
+}
 
 /**
  * Adds game-style keyboard movement to the mouse-driven OrbitControls. The
@@ -142,7 +146,7 @@ function RestoreCameraShake({ shakeRef }) {
  * shake to every disaster. The timings align with the visual contact beats:
  * the oak hits at 0.85s, while the hail roof strikes start at 0.65s.
  */
-function ApplyCameraShake({ shakeRef }) {
+function ApplyCameraShake({ shakeRef, reducedMotion }) {
   const hailTriggered = useGameStore((s) => !!s.triggered.hail)
   const hailProtected = useGameStore((s) => !!s.preventions.hail)
   const treeTriggered = useGameStore((s) => !!s.triggered.tree)
@@ -152,15 +156,24 @@ function ApplyCameraShake({ shakeRef }) {
   useFrame(({ camera, clock }) => {
     const now = clock.elapsedTime
     const shake = shakeRef.current
-
-    if (hailTriggered && !previous.current.hail) {
-      shake.hailStart = now + 0.65
-    }
-    if (treeTriggered && !previous.current.tree && !treeRemoved) {
-      shake.treeStart = now + 0.85
-    }
+    const previousHail = previous.current.hail
+    const previousTree = previous.current.tree
     previous.current.hail = hailTriggered
     previous.current.tree = treeTriggered
+
+    if (reducedMotion) {
+      shake.hailStart = -Infinity
+      shake.treeStart = -Infinity
+      shake.offset.set(0, 0, 0)
+      return
+    }
+
+    if (hailTriggered && !previousHail) {
+      shake.hailStart = now + 0.65
+    }
+    if (treeTriggered && !previousTree && !treeRemoved) {
+      shake.treeStart = now + 0.85
+    }
 
     let x = 0
     let y = 0
@@ -198,6 +211,7 @@ function ApplyCameraShake({ shakeRef }) {
  */
 export default function Scene() {
   const controlsRef = useRef()
+  const reducedMotion = usePrefersReducedMotion()
   const shakeRef = useRef({
     offset: new THREE.Vector3(),
     hailStart: -Infinity,
@@ -237,7 +251,6 @@ export default function Scene() {
       {/* Cool fill from the opposite side lifts the shadow side out of black */}
       <directionalLight position={[-8, 6, -6]} intensity={0.4} color="#bcd4ff" />
 
-      <CameraProbe />
       <RestoreCameraShake shakeRef={shakeRef} />
       <KeyboardOrbitControls controlsRef={controlsRef} />
       <Ground />
@@ -257,7 +270,7 @@ export default function Scene() {
         maxPolarAngle={Math.PI / 2.1}
         target={[3.1, 2.1, 0]}
       />
-      <ApplyCameraShake shakeRef={shakeRef} />
+      <ApplyCameraShake shakeRef={shakeRef} reducedMotion={reducedMotion} />
     </>
   )
 }

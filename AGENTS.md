@@ -75,8 +75,9 @@ must be present and clickable before the tree disaster is triggered.
   `PREVENTIONS.lockDisasterIds`; smoke detectors lock after either the kitchen
   fire or electrical fire starts and remain locked until reset.
 - Triggered effects and damage remain until `resetHouse()`. Reset clears damage,
-  prevention choices, stale trigger-hover state, and all savings-game progress
-  so the next run starts with the full savings pot.
+  prevention choices, stale trigger-hover state, and all savings-game progress,
+  and invalidates pending result callbacks so a prior run cannot affect the new
+  one. The next run starts with the full savings pot.
 - A disaster's result subtracts its outcome cost from `funds`. A protection
   charges its `cost` whenever it is enabled via `togglePrevention` and refunds
   that full cost when disabled. Going to `funds <= 0` is broke; testing all five risks
@@ -111,8 +112,9 @@ must be present and clickable before the tree disaster is triggered.
   propagation, and disabled behavior stay consistent.
 - Make damage legible through localized geometry/material changes: dents,
   scorch, missing roof sections, debris, or silhouette changes.
-- Camera shake should be impact-timed. Avoid stacking generic shake with an
-  effect that owns a stronger event-specific shake.
+- Camera shake should be impact-timed and disabled when the player requests
+  reduced motion. Avoid stacking generic shake with an effect that owns a
+  stronger event-specific shake.
 
 ## Assets and audio
 

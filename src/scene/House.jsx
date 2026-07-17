@@ -212,6 +212,90 @@ function Wall({ id, normal, position, size, fireActive, fireReduced }) {
 }
 
 /**
+ * A tiny framed State Farm poster above the kitchen sink. The artwork is drawn
+ * into a local canvas texture so the easter egg stays crisp without adding an
+ * external asset, and it follows the north wall's cutaway opacity so it never
+ * floats after that wall fades.
+ */
+function KitchenWallDecor() {
+  const groupRef = useRef()
+  const artwork = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 768
+    canvas.height = 420
+    const context = canvas.getContext('2d')
+
+    context.fillStyle = '#fffaf0'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+
+    const drawOval = (x, y) => {
+      context.beginPath()
+      context.ellipse(x, y, 72, 54, 0, 0, Math.PI * 2)
+      context.lineWidth = 22
+      context.strokeStyle = '#d62311'
+      context.stroke()
+    }
+    drawOval(146, 132)
+    drawOval(82, 242)
+    drawOval(210, 242)
+
+    context.fillStyle = '#d62311'
+    context.font = '800 70px Arial, sans-serif'
+    context.textAlign = 'left'
+    context.textBaseline = 'middle'
+    context.fillText('STATE FARM', 298, 184)
+
+    context.fillStyle = '#6f3327'
+    context.font = '700 27px Arial, sans-serif'
+    context.letterSpacing = '4px'
+    context.fillText('GOOD NEIGHBORS LIVE HERE', 300, 250)
+
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.needsUpdate = true
+    return texture
+  }, [])
+
+  useEffect(() => () => artwork.dispose(), [artwork])
+
+  useFrame(({ camera }, delta) => {
+    const group = groupRef.current
+    if (!group) return
+
+    const target = wallOpacityForCamera(camera, [0, 0, -1])
+    group.traverse((object) => {
+      if (!object.isMesh) return
+      object.castShadow = target > 0.62
+      const materials = Array.isArray(object.material) ? object.material : [object.material]
+      materials.forEach((material) => {
+        material.opacity = THREE.MathUtils.damp(material.opacity, target, 7, delta)
+      })
+    })
+  })
+
+  return (
+    <group ref={groupRef} position={[-0.78, 2.22, -2.035]}>
+      {/* Warm wood frame and inset cream print, kept chunky for the low-poly style. */}
+      <mesh position={[0, 0, -0.025]} castShadow raycast={NOOP_RAYCAST}>
+        <boxGeometry args={[1.44, 0.8, 0.08]} />
+        <meshStandardMaterial color="#6f3327" flatShading transparent depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0, 0.022]} raycast={NOOP_RAYCAST}>
+        <planeGeometry args={[1.28, 0.66]} />
+        <meshStandardMaterial
+          map={artwork}
+          roughness={0.78}
+          transparent
+          depthWrite={false}
+          polygonOffset
+          polygonOffsetFactor={-1}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+/**
  * Persistent, overlapping burn patches that make the unprotected fire's route
  * read as one broad floor-level aftermath instead of a few isolated spots.
  */
@@ -1667,6 +1751,7 @@ export default function House() {
           fireReduced={fireReduced}
         />
       ))}
+      <KitchenWallDecor />
 
       <FireScorch active={fireActive} reduced={fireReduced} />
 
