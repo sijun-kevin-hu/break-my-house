@@ -16,6 +16,7 @@ export const COVERAGE_DEMO = {
   avoidedDamageLead: 'You avoided',
   avoidedDamageSuffix: 'in estimated damage',
   avoidedDamageDetail: 'Compared with the unprotected scenario.',
+  acknowledgementTip: 'Press “Got it” to unlock the house and trigger another disaster.',
   introSummary:
     'Explore a roomy three-bedroom, one-bath home, trigger a disaster, and compare the full uninsured cost with an illustrative covered outcome using a $1,000 demo deductible.',
   disclaimer:
@@ -74,11 +75,6 @@ export const WALLET = {
   missionLabel: 'The challenge',
   mission:
     'Test all five risks and finish with savings left. Protections cost money up front — but the losses they prevent cost far more.',
-  nudgeTitle: 'Protect your savings',
-  nudgeHeadline: '🛡️ Beat this risk and keep your money',
-  // Order matters: protections stay locked until the house is reset.
-  nudgeDetail: (prevention, cost) =>
-    `Press Reset house, buy “${prevention}” (${cost}), then trigger this risk again.`,
   brokeKicker: 'Out of money',
   brokeTitle: 'Wiped out!',
   brokeSummary:

@@ -1,5 +1,5 @@
 import { useGameStore } from '../store/useGameStore'
-import { COVERAGE_DEMO, DISASTERS, PREVENTIONS, WALLET } from '../data/disasters'
+import { COVERAGE_DEMO, DISASTERS } from '../data/disasters'
 
 const formatDollars = (amount) => `$${amount.toLocaleString('en-US')}`
 
@@ -7,7 +7,6 @@ const formatDollars = (amount) => `$${amount.toLocaleString('en-US')}`
 export default function InfoPanel() {
   const panelDisaster = useGameStore((s) => s.panelDisaster)
   const damage = useGameStore((s) => s.damage)
-  const purchased = useGameStore((s) => s.purchased)
   const closePanel = useGameStore((s) => s.closePanel)
 
   if (!panelDisaster) return null
@@ -23,10 +22,6 @@ export default function InfoPanel() {
   const insurerPayment = Math.max(0, repairEstimate - COVERAGE_DEMO.deductible)
   const policyholderShare = repairEstimate - insurerPayment
   const avoidedDamage = d.repairEstimate - repairEstimate
-  const preventionOption = PREVENTIONS.find((p) =>
-    (d.preventionIds ?? [d.id]).includes(p.id)
-  )
-
   return (
     <aside className="info-panel">
       <h2>
@@ -89,15 +84,7 @@ export default function InfoPanel() {
       <h3>Prevention tip</h3>
       <p>{d.preventionTip}</p>
 
-      {/* After a full loss, hand the player their next move: buy protection */}
-      {!mitigated && preventionOption && !purchased[preventionOption.id] && (
-        <section className="challenge-nudge" aria-label={WALLET.nudgeTitle}>
-          <span>{WALLET.nudgeTitle}</span>
-          <strong>{WALLET.nudgeHeadline}</strong>
-          <small>{WALLET.nudgeDetail(d.prevention, formatDollars(preventionOption.cost))}</small>
-        </section>
-      )}
-
+      <p className="acknowledgement-tip">{COVERAGE_DEMO.acknowledgementTip}</p>
       <button className="close-btn" onClick={closePanel}>
         Got it
       </button>
