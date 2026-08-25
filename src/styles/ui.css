@@ -791,6 +791,15 @@ body,
 
 .intro-actions .intro-start { flex: 1; margin-top: 0; }
 
+.intro-affiliation-disclaimer {
+  max-width: 48ch;
+  margin: 10px auto 0;
+  color: #6a7a70;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .intro-back {
   padding: 10px 12px;
   color: #1e3a2f;

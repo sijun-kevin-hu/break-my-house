@@ -47,6 +47,8 @@ export const INTRODUCTION = {
       'Choose any upgrades you want to buy. Each costs some savings now, but can reduce or eliminate a much larger repair bill later. You cannot add one after its disaster starts.',
     startAction: 'Start breaking things',
     backAction: 'Back',
+    affiliationDisclaimer:
+      'Hackday educational prototype. Not an official insurance product, policy description, coverage determination, or offer of insurance.',
   },
 }
 

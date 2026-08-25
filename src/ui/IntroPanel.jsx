@@ -99,6 +99,7 @@ export default function IntroPanel() {
                 {content.startAction} <span aria-hidden="true">→</span>
               </button>
             </div>
+            <p className="intro-affiliation-disclaimer">{content.affiliationDisclaimer}</p>
           </>
         )}
       </div>
